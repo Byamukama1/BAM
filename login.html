@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Login</title>
+  <style>
+    :root{ --brand-red:#9b1c1c; --brand-gold:#fbbf24; }
+    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif }
+    body{ margin:0; background:#fafafa; color:#111; display:grid; place-items:center; min-height:100vh; padding:16px }
+    .card{ width:100%; max-width:480px; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.08); overflow:hidden; border:1px solid #eee }
+    .header{ background:linear-gradient(135deg,var(--brand-red),#7c1111); color:#fff; padding:22px 20px }
+    .header h1{ margin:0; font-size:22px }
+    form{ padding:20px }
+    label{ display:block; font-size:13px; margin:14px 0 6px }
+    input{ width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:10px; font-size:15px; outline:none; transition:.2s }
+    input:focus{ border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(155,28,28,.12) }
+    .btn{ margin-top:16px; width:100%; padding:12px 14px; border:none; border-radius:12px; background:var(--brand-gold); color:#111; font-weight:700; font-size:16px; cursor:pointer }
+    .btn:hover{ filter:brightness(.98) }
+    .alt{ padding:14px 20px; background:#fff; border-top:1px solid #eee; font-size:14px }
+    .alt a{ color:var(--brand-red); text-decoration:none; font-weight:600 }
+    .error{ background:#ffe8e8; color:#7c1111; border:1px solid #f2c4c4; padding:10px 12px; border-radius:10px; margin-top:10px; font-size:13px; display:none }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <h1>Login to BAM</h1>
+    </div>
+
+    <form id="loginForm" autocomplete="on">
+      <label for="id">Email or Phone</label>
+      <input id="id" type="text" required placeholder="you@gmail.com or 0772xxxxxx" />
+
+      <label for="password">Password</label>
+      <input id="password" type="password" minlength="6" required placeholder="••••••••" />
+
+      <div class="error" id="err"></div>
+      <button class="btn" type="submit">Login</button>
+    </form>
+
+    <div class="alt">
+      New here? <a href="register.html">Create an account</a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+    import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    // BAM1 config
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = id => document.getElementById(id);
+    const errBox = $("err");
+
+    function showError(msg){
+      errBox.style.display = "block";
+      errBox.textContent = msg;
+    }
+
+    // Normalize Ugandan phone numbers to 2567XXXXXXXX
+    function normalizeUGPhone(raw){
+      if (!raw) return null;
+      let s = (""+raw).trim();
+      // remove spaces and non-digits except leading +
+      s = s.replace(/[^\d+]/g, "");
+      // remove + if present
+      if (s.startsWith("+")) s = s.slice(1);
+
+      // If starts with 0XXXXXXXXX => 256XXXXXXXXX (drop leading 0, add 256)
+      if (/^0\d{9}$/.test(s)) return "256" + s.slice(1);
+
+      // If already like 2567XXXXXXXX (12 digits), keep
+      if (/^256\d{9}$/.test(s)) return s;
+
+      // If user typed just 7XXXXXXXX (9 digits), prefix 256
+      if (/^7\d{8}$/.test(s)) return "256" + s;
+
+      // If user typed 10 or 12 digits but not matching above, attempt last-9-from-end
+      const digits = s.replace(/\D/g,"");
+      if (digits.length >= 9){
+        const last9 = digits.slice(-9);
+        if (/^7\d{8}$/.test(last9)) return "256" + last9;
+      }
+      return null; // invalid
+    }
+
+    async function lookupEmailByPhone(normalizedPhone){
+      const users = collection(db, "users");
+      const qy = query(users, where("phone","==", normalizedPhone));
+      const snap = await getDocs(qy);
+      if (snap.empty) return null;
+      return snap.docs[0].data().email || null;
+    }
+
+    $("loginForm").addEventListener("submit", async (e)=>{
+      e.preventDefault();
+      errBox.style.display = "none";
+
+      const id = $("id").value.trim();
+      const password = $("password").value;
+
+      try{
+        let emailToUse = null;
+
+        if (id.includes("@")){
+          // Email login
+          emailToUse = id.toLowerCase();
+        } else {
+          // Phone login → normalize then look up email
+          const norm = normalizeUGPhone(id);
+          if (!norm) {
+            showError("Please enter a valid phone (e.g., 0772xxxxxx or 2567xxxxxxx) or an email.");
+            return;
+          }
+          const foundEmail = await lookupEmailByPhone(norm);
+          if (!foundEmail){
+            showError("No account found for phone " + norm + ".");
+            return;
+          }
+          emailToUse = (""+foundEmail).toLowerCase();
+        }
+
+        await signInWithEmailAndPassword(auth, emailToUse, password);
+        // success
+        location.href = "index.html";
+      }catch(err){
+        console.error(err);
+        let msg = "Login failed. ";
+        if (err.code === "auth/invalid-credential") msg += "Wrong email/phone or password.";
+        else if (err.code === "auth/user-not-found") msg += "Account not found.";
+        else if (err.code === "auth/wrong-password") msg += "Incorrect password.";
+        else msg += "Please try again.";
+        showError(msg);
+      }
+    });
+  </script>
+</body>
+</html>
