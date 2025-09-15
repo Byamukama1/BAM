@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Tasks</title>
+  <style>
+    :root{ --brand-red:#9b1c1c; --brand-red-d:#7c1111; --brand-gold:#fbbf24;
+      --rose-25:#fbeceb; --rose-50:#f6d8d5; --rose-75:#f2c4bf; --ink:#161617; --muted:#6b7280; }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{ margin:0;color:var(--ink);
+      background:
+        radial-gradient(120% 120% at -10% -10%, var(--rose-25) 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, var(--rose-50) 0%, transparent 60%),
+        linear-gradient(180deg, #fff 0%, var(--rose-25) 30%, var(--rose-50) 85%, var(--rose-75) 100%); }
+    header{ background:linear-gradient(135deg,var(--brand-red),var(--brand-red-d));
+      color:#fff;padding:14px 16px;font-weight:800;letter-spacing:.3px }
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 14px 96px}
+
+    .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;
+      padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+
+    .card{background:rgba(255,255,255,.86);border-radius:16px;
+      box-shadow:0 10px 24px rgba(0,0,0,.06);padding:12px;margin:12px 0}
+    .title{font-weight:800;margin:6px 2px 10px}
+    .media{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:16/9}
+    .media iframe,.media video{width:100%;height:100%;display:block}
+    .desc{margin-top:10px;font-size:14px;color:#3a2e2e}
+    .controls{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+    .btn{appearance:none;border:none;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer}
+    .btn.primary{background:var(--brand-gold);color:#111}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+    .earn{font-size:12px;font-weight:800;color:#0b5d2c;background:#e8fff2;border:1px solid #c3efda;border-radius:999px;padding:6px 10px}
+    .muted{color:var(--muted);font-size:12px}
+
+    .nav{ position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
+      display:flex;justify-content:space-around;padding:10px 8px 12px;z-index:10;backdrop-filter:blur(4px);
+      box-shadow:0 -6px 20px rgba(0,0,0,.06) }
+    .nav a{flex:1;text-align:center;text-decoration:none;color:#6b4a4a;font-size:12px;padding:6px 0;border-radius:16px;margin:0 4px;transition:.15s}
+    .nav a.active{color:#fff;background:var(--brand-red);box-shadow:0 6px 16px rgba(155,28,28,.25);font-weight:800}
+    .nav .n-ico{display:block;font-size:20px;margin-bottom:4px}
+
+    .overlay{ position:fixed;inset:0;background:rgba(255,255,255,.96);
+      display:grid;place-items:center;z-index:9999 }
+    .overlay .box{ text-align:center;color:#7c1111;font-weight:700;
+      background:#fff;border:1px solid #f6caca;border-radius:14px;
+      padding:16px 18px;box-shadow:0 10px 24px rgba(0,0,0,.08) }
+    .spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(155,28,28,.2);
+      border-top-color:var(--brand-red);animation:spin .8s linear infinite;margin:0 auto 10px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <header>BAM • Tasks</header>
+
+  <!-- Full-page loading -->
+  <div id="pageLoading" class="overlay">
+    <div class="box">
+      <div class="spinner"></div>
+      <div>Loading your today’s tasks.</div>
+      <div class="muted" style="margin-top:6px">Tap <b>Claim</b> to start the countdown.</div>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <div id="statusArea"></div>
+    <div id="adList"></div>
+  </main>
+
+  <nav class="nav">
+    <a href="index.html"><span class="n-ico">🏠</span>Home</a>
+    <a class="active" href="tasks.html" aria-current="page"><span class="n-ico">🗂️</span>Tasks</a>
+    <a href="levels.html"><span class="n-ico">🎖️</span>Levels</a>
+    <a href="profit.html"><span class="n-ico">💹</span>Profit</a>
+    <a href="account.html"><span class="n-ico">👤</span>Account</a>
+  </nav>
+
+  <!-- YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, setDoc,
+      serverTimestamp, where, runTransaction
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
+    const todayKey = ()=> new Date().toISOString().slice(0,10);
+
+    const LEVEL_RATES = { INTERN: { perTask: 500, dailyMax: 3, internshipDays: 3 } };
+
+    async function getUserMeta(uid){
+      const ref = doc(db,"users",uid); const snap = await getDoc(ref);
+      const u = snap.exists() ? snap.data() : {};
+      return { user: u, level: u.level || null };
+    }
+    const getEarningForUser = (level)=> LEVEL_RATES[level] || LEVEL_RATES.INTERN;
+
+    async function getTaskDoc(uid){
+      const ref = doc(db,"tasks",uid); const snap = await getDoc(ref);
+      if (!snap.exists()){ await setDoc(ref, { internshipStart: serverTimestamp() }, { merge:true }); return { ref, data: { internshipStart: new Date() } }; }
+      return { ref, data: snap.data() };
+    }
+    const daysBetween = (a,b)=> Math.floor((b - a)/(24*3600*1000));
+
+    async function countToday(uid){
+      const evCol = collection(db,"tasks",uid,"events");
+      const qy = query(evCol, where("dateKey","==", todayKey()));
+      const snap = await getDocs(qy);
+      return snap.size;
+    }
+    async function alreadyDoneToday(uid, adId){
+      const evCol = collection(db,"tasks",uid,"events");
+      const qy = query(evCol, where("dateKey","==", todayKey()), where("adId","==", adId));
+      const snap = await getDocs(qy);
+      return !snap.empty;
+    }
+    function showBanner(msg, ok=false){
+      const node = document.createElement("div");
+      node.className = "banner" + (ok ? " ok":"");
+      node.textContent = msg;
+      const area = $("statusArea");
+      area.innerHTML = "";
+      area.appendChild(node);
+    }
+
+    function extractYouTubeId(input){
+      if (!input) return "";
+      const s = String(input);
+      let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/); if (m) return m[1];
+      m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+      m = s.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+      m = s.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+      m = s.match(/^([A-Za-z0-9_-]{11})$/); if (m) return m[1];
+      return "";
+    }
+    function youTubeEmbedSrcFromAd(ad){
+      const id = ad.videoId || extractYouTubeId(ad.url || "");
+      if (!id) return "";
+      const origin = encodeURIComponent(location.origin);
+      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
+    }
+
+    const pendingYT = [];
+    let ytReady = false;
+    window.onYouTubeIframeAPIReady = () => {
+      ytReady = true;
+      for (const p of pendingYT) { const player = attachYTPlayer(p.iframeId, p.onPlay); p.setPlayer?.(player); }
+      pendingYT.length = 0;
+    };
+    function attachYTPlayer(iframeId, onPlay){
+      if (!window.YT || !window.YT.Player) return null;
+      return new window.YT.Player(iframeId, { events: { onStateChange: (e)=>{ if (e?.data === 1) onPlay?.(); } } });
+    }
+
+    async function loadAdvertsAndRender(earnCfg){
+      const list = $("adList");
+      try{
+        const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc"), limit(12)));
+        if (snap.empty){
+          list.innerHTML = '<div class="banner">No adverts available yet.</div>';
+        } else {
+          list.innerHTML = "";
+          snap.forEach(d=> renderAdCard(list, { id:d.id, ...d.data() }, earnCfg));
+        }
+      } finally {
+        hideOverlay(); // always hide, even if an error occurs above
+      }
+    }
+
+    function renderAdCard(container, ad, earnCfg){
+      const card = document.createElement("section");
+      card.className = "card";
+
+      const iframeId = `yt_${ad.id}`;
+      const mediaId  = `media_${ad.id}`;
+      const btnId    = `btn_${ad.id}`;
+
+      const state = { started:false, timer:null, elapsed:0, processing:false };
+      let ytPlayer = null, videoEl = null;
+
+      const earnAmount = Number(earnCfg.perTask || 0);
+      const earnStr = `UGX ${earnAmount.toLocaleString("en-UG")}`;
+
+      const isYT = ad.sourceType === "youtube";
+      const ytSrc = isYT ? youTubeEmbedSrcFromAd(ad) : "";
+      const mediaHtml = isYT
+        ? `<iframe id="${iframeId}" src="${ytSrc}" frameborder="0"
+             allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; accelerometer"
+             allowfullscreen></iframe>`
+        : `<video src="${ad.url}" muted playsinline autoplay controls></video>`;
+
+      card.innerHTML = `
+        <div class="title">${ad.title || "Watch this advert"}</div>
+        <div class="media" id="${mediaId}">${mediaHtml}</div>
+        <div class="desc">${ad.description ? ad.description : ""}</div>
+        <div class="controls">
+          <span class="earn">Earn ${earnStr}</span>
+          <button class="btn primary" id="${btnId}">Claim (10s)</button>
+        </div>
+      `;
+      container.appendChild(card);
+
+      const btn = card.querySelector(`#${btnId}`);
+      const mediaWrap = card.querySelector(`#${mediaId}`);
+
+      if (isYT && ytSrc){
+        const setPlayer = (p)=> ytPlayer = p;
+        const onPlay = ()=>{};
+        if (ytReady) setPlayer(attachYTPlayer(iframeId, onPlay));
+        else pendingYT.push({ iframeId, onPlay, setPlayer });
+      } else if (!isYT) {
+        videoEl = mediaWrap.querySelector("video");
+      } else {
+        mediaWrap.innerHTML = `<div class="banner">Invalid YouTube link for this advert.</div>`;
+      }
+
+      function startCountdown(){
+        state.started = true;
+        const startedAt = Date.now();
+        btn.disabled = true;
+        state.timer = setInterval(()=>{
+          state.elapsed = Math.floor((Date.now() - startedAt)/1000);
+          if (state.elapsed >= 10){
+            clearInterval(state.timer); state.timer = null;
+            btn.textContent = "Claim Reward";
+            btn.disabled = false;
+          }else{
+            btn.textContent = `Claim (${10 - state.elapsed}s)`;
+          }
+        }, 300);
+      }
+
+      btn.addEventListener("click", async ()=>{
+        if (!state.started){
+          try{
+            if (isYT && ytPlayer){ ytPlayer.unMute?.(); ytPlayer.playVideo?.(); }
+            else if (videoEl){ videoEl.muted = false; await videoEl.play().catch(()=>{}); }
+          }catch{}
+          startCountdown();
+          return;
+        }
+
+        if (state.processing || btn.disabled || state.timer) return;
+        state.processing = true; btn.disabled = true; btn.textContent = "Processing…";
+
+        try{
+          const user = auth.currentUser; if (!user) throw new Error("Please sign in again.");
+          const { level } = await getUserMeta(user.uid);
+          const cfg = getEarningForUser(level);
+
+          if (!level || !LEVEL_RATES[level]){
+            const { data } = await getTaskDoc(user.uid);
+            let startDate = data.internshipStart?.toDate ? data.internshipStart.toDate() : (data.internshipStart || new Date());
+            if (!(startDate instanceof Date)) startDate = new Date(startDate);
+            const ended = daysBetween(startDate, new Date()) >= cfg.internshipDays;
+            if (ended){ showBanner("Your internship period has ended. Please upgrade your level to continue tasks."); btn.textContent = "Internship ended"; return; }
+          }
+
+          const done = await countToday(user.uid);
+          if (done >= cfg.dailyMax){ showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`); btn.textContent = "Limit reached"; return; }
+
+          if (await alreadyDoneToday(user.uid, ad.id)){ btn.textContent = "Already claimed"; showBanner("You already completed this advert today."); return; }
+
+          await runTransaction(db, async (tx)=>{
+            const uref = doc(db,"users",user.uid);
+            const usnap = await tx.get(uref);
+            const u = usnap.exists() ? usnap.data() : {};
+            const next = Number(u.commissionWallet || 0) + Number(cfg.perTask);
+            tx.set(uref, { commissionWallet: next }, { merge:true });
+            const evRef = doc(collection(db,"tasks",user.uid,"events"));
+            tx.set(evRef, { adId: ad.id, amount: cfg.perTask, dateKey: todayKey(), createdAt: serverTimestamp(),
+              sourceType: ad.sourceType || null, url: ad.url || null, title: ad.title || null });
+          });
+
+          btn.textContent = `Claimed +UGX ${Number(cfg.perTask).toLocaleString("en-UG")}`;
+          showBanner(`Great! +UGX ${Number(cfg.perTask).toLocaleString("en-UG")} added to your commission wallet.`, true);
+        }catch(e){
+          console.error(e);
+          btn.textContent = "Try again";
+          btn.disabled = false;
+          showBanner(e.message || "Failed to claim reward.");
+        }finally{
+          state.processing = false;
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){ location.href = "login.html"; return; }
+      await getTaskDoc(user.uid);
+      const { level } = await getUserMeta(user.uid);
+      const cfg = getEarningForUser(level);
+      await loadAdvertsAndRender(cfg);
+    });
+  </script>
+</body>
+</html>
