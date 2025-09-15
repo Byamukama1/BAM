@@ -6,15 +6,13 @@
   <title>BAM • Home</title>
   <style>
     :root{
-      /* BAM brand */
       --brand-red:#9b1c1c;
       --brand-red-d:#7c1111;
       --brand-gold:#fbbf24;
 
-      /* Pale tones for full-page background */
-      --rose-25:#fbeceb;   /* very light BAM red */
-      --rose-50:#f6d8d5;   /* pale wash */
-      --rose-75:#f2c4bf;   /* a bit stronger */
+      --rose-25:#fbeceb;
+      --rose-50:#f6d8d5;
+      --rose-75:#f2c4bf;
 
       --ink:#161617;
       --muted:#6b7280;
@@ -30,6 +28,20 @@
     }
     .wrap{max-width:1100px;margin:0 auto;padding:0 14px 92px}
 
+    /* Loader overlay */
+    .loader{
+      position:fixed;inset:0;display:grid;place-items:center;
+      background:rgba(255,255,255,.9);backdrop-filter:blur(4px);
+      z-index:9999;
+    }
+    .spinner{
+      width:52px;height:52px;border-radius:50%;
+      border:5px solid #f3d1d1;border-top-color:var(--brand-red);
+      animation:spin 0.9s linear infinite;margin:0 auto 10px;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .welcome{color:var(--brand-red-d);font-weight:800}
+
     /* Top bar */
     .top{
       background:linear-gradient(135deg,var(--brand-red),var(--brand-red-d));
@@ -40,9 +52,13 @@
     .brand small{font-weight:500;opacity:.9}
     .bell{background:rgba(255,255,255,.16);border:none;color:#fff;padding:8px 10px;border-radius:10px}
 
-    /* Announcements (fills space, no borders) */
+    /* Announcements */
     .slider{margin-top:12px;border-radius:18px;overflow:hidden}
-    .rail{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-ms-overflow-style:none}
+    .rail{
+      display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;
+      scrollbar-width:none;-ms-overflow-style:none;
+      scroll-behavior:smooth; /* needed for smooth auto-slide */
+    }
     .rail::-webkit-scrollbar{display:none}
     .slide{min-width:100%;max-width:100%;scroll-snap-align:start;position:relative;height:210px;background:#ead5d3;flex:0 0 auto}
     .slide img{width:100%;height:100%;object-fit:cover;display:block}
@@ -54,39 +70,32 @@
 
     /* Compact circular buttons */
     .grid-small{
-      margin:16px 0 6px;
-      display:grid;
+      margin:16px 0 6px; display:grid;
       grid-template-columns:repeat(3,1fr);
-      gap:14px 6px;
-      justify-items:center;
+      gap:14px 6px; justify-items:center;
     }
     .btn{text-align:center;text-decoration:none;color:var(--ink);font-size:11px;font-weight:600;line-height:1.1}
     .ico-small{
       width:46px;height:46px;border-radius:50%;
       background:linear-gradient(135deg,#fff,#fff4d2);
-      display:grid;place-items:center;
-      margin:0 auto 6px;
+      display:grid;place-items:center;margin:0 auto 6px;
       font-size:18px;color:var(--brand-red-d);
       box-shadow:inset 0 0 0 2px rgba(155,28,28,.28), 0 2px 6px rgba(155,28,28,.12);
     }
     .btn span{display:block;font-size:11px;color:var(--brand-red-d);font-weight:700}
 
-    /* Section title (no cards) */
+    /* Section title */
     .section{margin-top:10px}
     .section h3{margin:0 0 6px 4px;font-size:14px;font-weight:800;color:var(--brand-red-d)}
 
-    /* Activity list — clean, compact; container auto-scrolls */
+    /* Activity list with auto-scroll */
     .list-wrap{
-      height:190px;                 /* visible window */
-      overflow:hidden;
-      border-radius:16px;
-      background:rgba(255,255,255,.7);
+      height:190px; overflow:hidden; border-radius:16px; background:rgba(255,255,255,.7);
     }
     .list{padding:6px 6px 0 6px}
     .item{
       display:flex;justify-content:space-between;align-items:center;
-      padding:10px 8px;margin:0 0 6px;border-radius:12px;
-      background:rgba(255,255,255,.72)
+      padding:10px 8px;margin:0 0 6px;border-radius:12px;background:rgba(255,255,255,.72)
     }
     .meta{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:11px}
     .type{
@@ -100,7 +109,7 @@
     .nav{
       position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
       display:flex;justify-content:space-around;padding:10px 8px 12px;z-index:10;backdrop-filter:blur(4px);
-      box-shadow:0 -6px 20px rgba(0,0,0,.06);   /* soft lift instead of yellow line */
+      box-shadow:0 -6px 20px rgba(0,0,0,.06);
     }
     .nav a{
       flex:1;text-align:center;text-decoration:none;color:#6b4a4a;
@@ -115,6 +124,14 @@
   </style>
 </head>
 <body>
+  <!-- Loader -->
+  <div id="loader" class="loader" aria-live="polite" aria-busy="true">
+    <div>
+      <div class="spinner"></div>
+      <div class="welcome">BAM welcomes you back</div>
+    </div>
+  </div>
+
   <header class="top">
     <div class="brand">
       <div>BAM</div>
@@ -187,6 +204,7 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
+    const loader = $("loader");
 
     function maskPhone(phone){
       if (!phone) return "***********";
@@ -201,15 +219,12 @@
       if (v.seconds) return v.seconds*1000 + (v.nanoseconds||0)/1e6;
       return Date.parse(v) || 0;
     }
-    function parseAmount(amt){
-      const n = Number(amt);
-      return isNaN(n) ? 0 : n;
-    }
+    function parseAmount(amt){ const n = Number(amt); return isNaN(n) ? 0 : n; }
     function renderEmpty(el, text){
       el.innerHTML = `<div class="item" style="background:rgba(255,255,255,.6);text-align:center">${text}</div>`;
     }
 
-    // Announcements
+    // ---- Announcements ----
     async function loadAnnouncements(){
       const rail = $("sliderRail");
       rail.innerHTML = "";
@@ -231,17 +246,58 @@
           card.innerHTML = `${img?`<img src="${img}" alt="announcement">`:""}${title?`<div class="caption">${title}</div>`:""}`;
           rail.appendChild(card);
         });
+
+        // Start horizontal auto-slide (2s per slide)
+        startSliderAuto(rail, 2000);
+
       }catch(e){
         console.error("Announcements error:", e);
         rail.innerHTML = `<div class="slide"><div class="caption">Could not load announcements</div></div>`;
       }
     }
 
-    // Mixed activity (sorted by amount DESC, then time DESC)
+    // Auto slideshow for the horizontal rail
+    function startSliderAuto(rail, interval=2000){
+      const slides = Array.from(rail.children);
+      if (slides.length <= 1) return; // nothing to slide
+
+      let idx = 0;
+      let paused = false;
+
+      // Helpers to get width on resize
+      const getWidth = () => rail.clientWidth;
+      const goTo = (i) => {
+        idx = i % slides.length;
+        rail.scrollTo({ left: idx * getWidth(), behavior: "smooth" });
+      };
+
+      let timer = setInterval(()=>{ if(!paused) goTo(idx+1); }, interval);
+
+      const pause = () => { paused = true; };
+      const resumeSoon = () => { paused = false; };
+      const resetTimer = () => { clearInterval(timer); timer = setInterval(()=>{ if(!paused) goTo(idx+1); }, interval); };
+
+      // Pause/resume on user interaction
+      ["pointerdown","mouseenter","touchstart"].forEach(evt => rail.addEventListener(evt, pause, {passive:true}));
+      ["pointerup","mouseleave","touchend","touchcancel"].forEach(evt => rail.addEventListener(evt, ()=>setTimeout(resumeSoon, 1500), {passive:true}));
+
+      // Keep index aligned when the user scrolls manually (snap end)
+      rail.addEventListener("scroll", ()=>{
+        // debounce update
+        clearTimeout(rail._snapTimer);
+        rail._snapTimer = setTimeout(()=>{
+          idx = Math.round(rail.scrollLeft / getWidth());
+        }, 150);
+      });
+
+      // Handle resize
+      window.addEventListener("resize", resetTimer);
+    }
+
+    // ---- Wallet Activity (sorted by amount) ----
     async function loadActivity(){
       const box = $("activityList");
       box.innerHTML = "";
-
       try{
         const [reSnap, wdSnap] = await Promise.all([
           getDocs(query(collection(db,"recharges"),   orderBy("createdAt","desc"), limit(20))),
@@ -276,7 +332,7 @@
             box.appendChild(div);
           });
 
-        // Start auto-scroll after rendering
+        // Start vertical auto-scroll
         startAutoScroll(document.querySelector(".list-wrap"), 35);
 
       }catch(e){
@@ -304,7 +360,10 @@
       setInterval(step, speedMs);
     }
 
+    // ---- Init + Loader hide ----
     await Promise.all([loadAnnouncements(), loadActivity()]);
+    // Small grace so the user sees the welcome briefly
+    setTimeout(()=>{ loader.style.display = "none"; loader.setAttribute("aria-busy","false"); }, 600);
   </script>
 </body>
 </html>
