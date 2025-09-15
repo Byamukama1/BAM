@@ -111,7 +111,11 @@
       <div class="avatar" id="avatar">B</div>
       <div class="title">
         <b id="displayName">Member</b>
-        <small>BAM</small>
+        <!-- ⬇️ Level + Status added here -->
+        <small>
+           <span id="levelBadge">Level: Intern</span> <br>
+          <span id="statusBadge">Status: —</span>
+        </small>
       </div>
     </div>
   </header>
@@ -205,6 +209,25 @@
       }
     }
 
+    function computeLevelAndStatus(data){
+      // Prefer highest joined/under_review among B9..B1
+      let level = "Intern";
+      let status = "—";
+      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+      for (const code of order){
+        const entry = data?.[code];
+        if (entry && (entry.status === "joined" || entry.status === "under_review")){
+          level = code;
+          status = entry.status.replace("_"," ");
+          break;
+        }
+      }
+      // Fallback to legacy flat fields if present
+      if (data?.level) level = data.level;
+      if (data?.levelStatus) status = String(data.levelStatus).replace("_"," ");
+      return { level, status };
+    }
+
     async function loadUser(uid){
       const ref = doc(db,"users",uid);
       const snap = await getDoc(ref);
@@ -212,6 +235,11 @@
 
       $("displayName").textContent = d.name || (auth.currentUser?.displayName || "BAM Member");
       $("avatar").textContent = (d.name || "B M").split(" ").map(s=>s[0]||"").slice(0,2).join("").toUpperCase() || "B";
+
+      // NEW: show level + status at the top
+      const { level, status } = computeLevelAndStatus(d);
+      $("levelBadge").textContent  = `Level: ${level}`;
+      $("statusBadge").textContent = `Status: ${status}`;
 
       $("mainWallet").textContent = fmt(d.mainWallet || 0);
       $("commWallet").textContent = fmt(d.commissionWallet || 0);
