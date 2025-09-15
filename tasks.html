@@ -107,21 +107,63 @@
     const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
     const todayKey = ()=> new Date().toISOString().slice(0,10);
 
-    const LEVEL_RATES = { INTERN: { perTask: 500, dailyMax: 3, internshipDays: 3 } };
+    // === LEVEL TABLE (matches Levels page) ===
+    const LEVEL_RATES = {
+      INTERN: { perTask: 300,  dailyMax: 5  },
+      B1:     { perTask: 330,  dailyMax: 7  },
+      B2:     { perTask: 430,  dailyMax: 17 },
+      B3:     { perTask: 735,  dailyMax: 28 },
+      B4:     { perTask: 1200, dailyMax: 54 },
+      B5:     { perTask: 2250, dailyMax: 80 },
+      B6:     { perTask: 3700, dailyMax: 130 },
+      B7:     { perTask: 6500, dailyMax: 175 },
+      B8:     { perTask: 8750, dailyMax: 260 },
+      B9:     { perTask: 15000,dailyMax: 300 },
+    };
 
-    async function getUserMeta(uid){
-      const ref = doc(db,"users",uid); const snap = await getDoc(ref);
+    // ===== Internship config =====
+    const INTERNSHIP_DAYS = 3; // hard limit
+
+    // Determine level from user doc (highest joined B* or INTERN)
+    function resolveLevelFromUser(userDoc){
+      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+      for (const code of order){
+        const entry = userDoc?.[code];
+        if (entry && entry.status === "joined") return code;
+      }
+      if (userDoc?.level && LEVEL_RATES[userDoc.level]) return userDoc.level; // legacy
+      return "INTERN";
+    }
+
+    async function getUserInfo(uid){
+      const ref = doc(db,"users",uid);
+      const snap = await getDoc(ref);
       const u = snap.exists() ? snap.data() : {};
-      return { user: u, level: u.level || null };
+      return { user: u, level: resolveLevelFromUser(u) };
     }
-    const getEarningForUser = (level)=> LEVEL_RATES[level] || LEVEL_RATES.INTERN;
 
-    async function getTaskDoc(uid){
-      const ref = doc(db,"tasks",uid); const snap = await getDoc(ref);
-      if (!snap.exists()){ await setDoc(ref, { internshipStart: serverTimestamp() }, { merge:true }); return { ref, data: { internshipStart: new Date() } }; }
-      return { ref, data: snap.data() };
-    }
+    // --- Internship helpers (store start date in tasks/{uid}.internshipStart)
     const daysBetween = (a,b)=> Math.floor((b - a)/(24*3600*1000));
+    function tsToDate(v){
+      if (!v) return null;
+      if (v.toDate) return v.toDate();
+      const d = new Date(v); return isNaN(d) ? null : d;
+    }
+    async function ensureInternshipStart(uid){
+      const tRef = doc(db,"tasks",uid);
+      const tSnap = await getDoc(tRef);
+      if (!tSnap.exists() || !tSnap.data().internshipStart){
+        await setDoc(tRef, { internshipStart: serverTimestamp(), createdAt: serverTimestamp() }, { merge:true });
+        return new Date(); // optimistic local now
+      }
+      return tsToDate(tSnap.data().internshipStart) || new Date();
+    }
+    async function getInternshipInfo(uid){
+      const start = await ensureInternshipStart(uid);
+      const elapsed = daysBetween(start, new Date());
+      const left = Math.max(0, INTERNSHIP_DAYS - elapsed);
+      return { start, elapsed, left, ended: elapsed >= INTERNSHIP_DAYS };
+    }
 
     async function countToday(uid){
       const evCol = collection(db,"tasks",uid,"events");
@@ -138,7 +180,7 @@
     function showBanner(msg, ok=false){
       const node = document.createElement("div");
       node.className = "banner" + (ok ? " ok":"");
-      node.textContent = msg;
+      node.innerHTML = msg;
       const area = $("statusArea");
       area.innerHTML = "";
       area.appendChild(node);
@@ -173,7 +215,11 @@
       return new window.YT.Player(iframeId, { events: { onStateChange: (e)=>{ if (e?.data === 1) onPlay?.(); } } });
     }
 
-    async function loadAdvertsAndRender(earnCfg){
+    // Global internship flag used during render/claim
+    let currentLevel = "INTERN";
+    let internshipEnded = false;
+
+    async function loadAdvertsAndRender(levelCfg){
       const list = $("adList");
       try{
         const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc"), limit(12)));
@@ -181,14 +227,14 @@
           list.innerHTML = '<div class="banner">No adverts available yet.</div>';
         } else {
           list.innerHTML = "";
-          snap.forEach(d=> renderAdCard(list, { id:d.id, ...d.data() }, earnCfg));
+          snap.forEach(d=> renderAdCard(list, { id:d.id, ...d.data() }, levelCfg));
         }
       } finally {
-        hideOverlay(); // always hide, even if an error occurs above
+        hideOverlay(); // hide spinner regardless
       }
     }
 
-    function renderAdCard(container, ad, earnCfg){
+    function renderAdCard(container, ad, levelCfg){
       const card = document.createElement("section");
       card.className = "card";
 
@@ -199,7 +245,7 @@
       const state = { started:false, timer:null, elapsed:0, processing:false };
       let ytPlayer = null, videoEl = null;
 
-      const earnAmount = Number(earnCfg.perTask || 0);
+      const earnAmount = Number(levelCfg.perTask || 0);
       const earnStr = `UGX ${earnAmount.toLocaleString("en-UG")}`;
 
       const isYT = ad.sourceType === "youtube";
@@ -216,13 +262,22 @@
         <div class="desc">${ad.description ? ad.description : ""}</div>
         <div class="controls">
           <span class="earn">Earn ${earnStr}</span>
-          <button class="btn primary" id="${btnId}">Claim (10s)</button>
+          <button class="btn primary" id="${btnId}">${
+            currentLevel==="INTERN" && internshipEnded
+            ? "Internship ended"
+            : "Claim (10s)"
+          }</button>
         </div>
       `;
       container.appendChild(card);
 
       const btn = card.querySelector(`#${btnId}`);
       const mediaWrap = card.querySelector(`#${mediaId}`);
+
+      // Disable button entirely when internship has ended
+      if (currentLevel==="INTERN" && internshipEnded){
+        btn.disabled = true;
+      }
 
       if (isYT && ytSrc){
         const setPlayer = (p)=> ytPlayer = p;
@@ -252,6 +307,14 @@
       }
 
       btn.addEventListener("click", async ()=>{
+        // Block immediately if internship ended
+        if (currentLevel==="INTERN" && internshipEnded){
+          showBanner(
+            "Your 3-day internship has ended. <b>Recharge</b> to unlock withdrawals and join a paid level for higher daily tasks.",
+          );
+          return;
+        }
+
         if (!state.started){
           try{
             if (isYT && ytPlayer){ ytPlayer.unMute?.(); ytPlayer.playVideo?.(); }
@@ -266,21 +329,20 @@
 
         try{
           const user = auth.currentUser; if (!user) throw new Error("Please sign in again.");
-          const { level } = await getUserMeta(user.uid);
-          const cfg = getEarningForUser(level);
 
-          if (!level || !LEVEL_RATES[level]){
-            const { data } = await getTaskDoc(user.uid);
-            let startDate = data.internshipStart?.toDate ? data.internshipStart.toDate() : (data.internshipStart || new Date());
-            if (!(startDate instanceof Date)) startDate = new Date(startDate);
-            const ended = daysBetween(startDate, new Date()) >= cfg.internshipDays;
-            if (ended){ showBanner("Your internship period has ended. Please upgrade your level to continue tasks."); btn.textContent = "Internship ended"; return; }
-          }
+          // Always re-read level (in case they upgraded mid-session)
+          const { level } = await getUserInfo(user.uid);
+          const cfg = LEVEL_RATES[level] || LEVEL_RATES.INTERN;
 
           const done = await countToday(user.uid);
-          if (done >= cfg.dailyMax){ showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`); btn.textContent = "Limit reached"; return; }
-
-          if (await alreadyDoneToday(user.uid, ad.id)){ btn.textContent = "Already claimed"; showBanner("You already completed this advert today."); return; }
+          if (done >= cfg.dailyMax){
+            showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`);
+            btn.textContent = "Limit reached"; return;
+          }
+          if (await alreadyDoneToday(user.uid, ad.id)){
+            btn.textContent = "Already claimed";
+            showBanner("You already completed this advert today."); return;
+          }
 
           await runTransaction(db, async (tx)=>{
             const uref = doc(db,"users",user.uid);
@@ -290,7 +352,7 @@
             tx.set(uref, { commissionWallet: next }, { merge:true });
             const evRef = doc(collection(db,"tasks",user.uid,"events"));
             tx.set(evRef, { adId: ad.id, amount: cfg.perTask, dateKey: todayKey(), createdAt: serverTimestamp(),
-              sourceType: ad.sourceType || null, url: ad.url || null, title: ad.title || null });
+              sourceType: ad.sourceType || null, url: ad.url || null, title: ad.title || null, levelUsed: level });
           });
 
           btn.textContent = `Claimed +UGX ${Number(cfg.perTask).toLocaleString("en-UG")}`;
@@ -308,9 +370,29 @@
 
     onAuthStateChanged(auth, async (user)=>{
       if (!user){ location.href = "login.html"; return; }
-      await getTaskDoc(user.uid);
-      const { level } = await getUserMeta(user.uid);
-      const cfg = getEarningForUser(level);
+
+      // Make sure tasks doc exists & internship start is set
+      const { level } = await getUserInfo(user.uid);
+      currentLevel = level;
+
+      if (level === "INTERN"){
+        const { left, ended } = await getInternshipInfo(user.uid);
+        internshipEnded = ended;
+
+        if (ended){
+          showBanner(
+            "Your 3-day internship has ended. <b>Recharge</b> now to unlock withdrawals and join a paid level for more daily tasks."
+          );
+        } else {
+          const dayWord = left === 1 ? "day" : "days";
+          showBanner(
+            `Internship in progress — <b>${left} ${dayWord} left</b>. You can earn UGX 300 per task (5 tasks/day). Recharge anytime to unlock withdrawals and upgrade.`
+          );
+        }
+      }
+
+      // Render adverts with the current level’s payout
+      const cfg = LEVEL_RATES[currentLevel] || LEVEL_RATES.INTERN;
       await loadAdvertsAndRender(cfg);
     });
   </script>
