@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Income</title>
+  <style>
+    /* Header (BAM colors) */
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --rowA:#fff5f5; --rowB:#fde8e8; --ink:#0f172a;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;background:#fff7f7;color:var(--ink)}
+    header{
+      background:linear-gradient(135deg,var(--brand),var(--brand-d));
+      color:#fff;text-align:center;padding:10px 12px;
+      font-weight:900;letter-spacing:.3px
+    }
+
+    .wrap{max-width:980px;margin:0 auto;padding:10px}
+
+    /* TITLE STRIP */
+    .title-strip{
+      background:linear-gradient(180deg,var(--brand),var(--brand-d));
+      color:#fff;text-align:center;border-radius:10px;
+      margin:6px 0 10px;padding:10px 8px;
+      font-weight:900; line-height:1.2; text-transform:uppercase; letter-spacing:1px
+    }
+    .title-strip small{display:block;font-weight:800;opacity:.9}
+
+    /* COMPACT TABLE */
+    .table-wrap{border:2px solid var(--brand);border-radius:10px;overflow:hidden}
+    table{width:100%;border-collapse:collapse;table-layout:fixed}
+    thead th{
+      background:linear-gradient(180deg,var(--brand-d),var(--brand));
+      color:#fff;border-right:1px solid #7c1111;
+      font-size:11px;padding:6px 4px;text-align:center
+    }
+    thead th:last-child{border-right:none}
+    tbody td{
+      font-size:11px;padding:6px 6px;border-right:1px solid #f2d1d1
+    }
+    tbody td:last-child{border-right:none}
+    tbody tr:nth-child(odd){background:var(--rowA)}
+    tbody tr:nth-child(even){background:var(--rowB)}
+    .c{text-align:center}
+    .r{text-align:right}
+    .lvl{font-weight:900;color:var(--brand-d)}
+
+    /* NOTES / EXPLANATION */
+    .note{
+      margin-top:10px;background:#fff1f1;color:#7c1111;border:2px solid var(--brand-d);
+      border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.45
+    }
+    .note h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--brand-d)}
+    .note .hl{font-weight:900;color:var(--brand)}
+  </style>
+</head>
+<body>
+  
+
+  <main class="wrap">
+    <div class="title-strip">
+      <div style="font-size:18px">Employee Level Income Details (UGX)</div>
+      <small></small>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Employee Level</th>
+            <th>Deposit for Level</th>
+            <th>Daily Income</th>
+            <th>Number of Daily Tasks</th>
+            <th>Revenue per Task</th>
+            <th>Monthly Income</th>
+            <th>Annual Income</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Intern -->
+          <tr>
+            <td class="lvl c">INTERN</td>
+            <td class="c">—</td>
+            <td class="r">1,500</td>
+            <td class="c">5</td>
+            <td class="r">300</td>
+            <td class="r">45,000</td>
+            <td class="r">540,000</td>
+          </tr>
+          <!-- M1..M9 (full figures) -->
+          <tr><td class="lvl c">M1</td><td class="r">80,000</td><td class="r">2,310</td><td class="c">7</td><td class="r">330</td><td class="r">69,300</td><td class="r">831,600</td></tr>
+          <tr><td class="lvl c">M2</td><td class="r">229,000</td><td class="r">7,310</td><td class="c">17</td><td class="r">430</td><td class="r">219,300</td><td class="r">2,631,600</td></tr>
+          <tr><td class="lvl c">M3</td><td class="r">625,000</td><td class="r">20,580</td><td class="c">28</td><td class="r">735</td><td class="r">617,400</td><td class="r">7,408,800</td></tr>
+          <tr><td class="lvl c">M4</td><td class="r">1,940,000</td><td class="r">64,800</td><td class="c">54</td><td class="r">1,200</td><td class="r">1,944,000</td><td class="r">24M</td></tr>
+          <tr><td class="lvl c">M5</td><td class="r">5,210,000</td><td class="r">180,000</td><td class="c">80</td><td class="r">2,250</td><td class="r">5,400,000</td><td class="r">64M</td></tr>
+          <tr><td class="lvl c">M6</td><td class="r">14M</td><td class="r">481,000</td><td class="c">130</td><td class="r">3,700</td><td class="r">15M</td><td class="r">173M</td></tr>
+          <tr><td class="lvl c">M7</td><td class="r">30M</td><td class="r">1,137500</td><td class="c">175</td><td class="r">6,500</td><td class="r">34M</td><td class="r">409M</td></tr>
+          <tr><td class="lvl c">M8</td><td class="r">60M</td><td class="r">2M</td><td class="c">260</td><td class="r">8,750</td><td class="r">68M</td><td class="r">819M</td></tr>
+          <tr><td class="lvl c">M9</td><td class="r">99M</td><td class="r">4M</td><td class="c">300</td><td class="r">15,000</td><td class="r">135M</td><td class="r">1,620M</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Explanations (start with Intern, then M1) -->
+    <div class="note">
+      <h3>Intern</h3>
+      Interns do not need a deposit. There are <span class="hl">5</span> tasks per day, and each task
+      earns a commission of <span class="hl">300 UGX</span>. Interns can earn
+      <span class="hl">1,500 UGX per day</span>. The internship period is <span class="hl">3 days</span>.
+    </div>
+
+    <div class="note">
+      <h3>M1</h3>
+      The deposit for M1 is <span class="hl">80,000 UGX</span>. Tasks per day: <span class="hl">7</span>.
+      Commission per task: <span class="hl">330 UGX</span>. Total daily income:
+      <span class="hl">2,310 UGX</span>; monthly: <span class="hl">69,300 UGX</span>;
+      annual: <span class="hl">831,600 UGX</span>.
+    </div>
+  </main>
+</body>
+</html>
