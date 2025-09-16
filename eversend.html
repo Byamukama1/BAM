@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Eversend Payment</title>
+  <style>
+    :root{ --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24; --ink:#161617; --muted:#6b7280; }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{
+      margin:0;color:var(--ink);
+      background:
+        radial-gradient(120% 120% at -10% -10%, #fbeceb 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, #f6d8d5 0%, transparent 60%),
+        linear-gradient(180deg, #fff 0%, #fbeceb 30%, #f6d8d5 85%, #f2c4bf 100%);
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:14px 16px;font-weight:900}
+    .wrap{max-width:900px;margin:0 auto;padding:14px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 12px 28px rgba(0,0,0,.06);padding:16px}
+
+    .title{font-weight:900;margin:0 0 6px}
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:900;cursor:pointer}
+    .btn.gold{background:var(--gold);color:#111;box-shadow:0 8px 18px rgba(251,191,36,.25)}
+    .btn.red{background:var(--brand);color:#fff}
+    .btn.red[disabled]{opacity:.55;cursor:not-allowed}
+    .hr{height:1px;background:#f1f5f9;margin:12px 0}
+    .small{font-size:12px;color:#6b7280}
+    .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+
+    /* details + upload */
+    .kv{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+    .kv .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:8px 10px;font-weight:800}
+    .upload{border:1px dashed #e5e7eb;border-radius:12px;padding:12px;background:#fff}
+    .preview{margin-top:10px;display:none}
+    .preview img{max-width:100%;border-radius:12px;border:1px solid #e5e7eb}
+  </style>
+</head>
+<body>
+  <header>BAM • Eversend Payment</header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2 class="title">Use Eversend to pay</h2>
+      <p class="muted">Follow the steps carefully. After paying on Eversend, upload your mobile money receipt here and press <b>Successful</b>.</p>
+
+      <!-- visible deposit details (no id/status shown) -->
+      <div class="kv">
+        <div class="box">Phone: <span id="depPhone">—</span></div>
+        <div class="box">Amount: <span id="depAmount">—</span></div>
+      </div>
+
+      <!-- EVERSEND button -->
+      <div class="row" style="margin-top:6px">
+        <button id="openEversend" class="btn gold">USE EVERSEND TO PAY</button>
+      </div>
+
+      <div class="hr"></div>
+
+      <!-- Upload screenshot -->
+      <h3 class="title" style="font-size:16px">Upload payment screenshot</h3>
+      <div class="upload">
+        <input id="fileInput" type="file" accept="image/*" />
+        <div class="preview" id="previewWrap">
+          <p class="small">Preview:</p>
+          <img id="previewImg" alt="Receipt preview" />
+        </div>
+        <p class="small" style="margin-top:8px">Upload the MTN/Airtel SMS/app receipt after you finish payment.</p>
+      </div>
+
+      <div id="statusArea"></div>
+
+      <!-- Mark successful (disabled until a file is chosen) -->
+      <div class="row" style="margin-top:12px">
+        <button id="markSuccess" class="btn red" disabled>Successful</button>
+      </div>
+      <p class="banner" style="margin-top:8px">
+        ⚠️ <b>Important:</b> Clicking <b>Successful</b> before you finish the Eversend payment (PIN entered) may lead to <b>account banning</b>.
+      </p>
+
+      <div class="hr"></div>
+
+      <!-- Instructions -->
+      <h3 class="title" style="font-size:16px">Instructions</h3>
+      <ol class="small" style="line-height:1.55;padding-left:18px">
+        <li>Click <b>USE EVERSEND TO PAY</b>.</li>
+        <li>Enter the <b>amount</b> you want to deposit.</li>
+        <li>Fill in your <b>names</b>.</li>
+        <li>Add a note e.g. <b>Recharge BAM</b>.</li>
+        <li>Click <b>Continue</b>.</li>
+        <li>Enter the <b>same number</b> you selected earlier (WhatsApp number to receive the OTP).</li>
+        <li>Copy the <b>OTP</b> from WhatsApp and paste it.</li>
+        <li>Click <b>Make transaction</b> and enter your <b>PIN</b>.</li>
+        <li>After PIN, take a <b>screenshot</b> of the MTN/Airtel payment message.</li>
+        <li>Upload the screenshot above and click <b>Successful</b>.</li>
+      </ol>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, updateDoc, runTransaction,
+      serverTimestamp, collection, query, where, orderBy, limit, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    /* ---------------- Firebase ---------------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+    const auth = getAuth(app);
+
+    /* ---------------- Cloudinary (unsigned) ---------------- */
+    // Replace with your credentials if different
+    const cloudinaryConfig = {
+      cloudName: 'dp81zzxlh',
+      uploadPreset: 'Unsigned upload'
+    };
+
+    /* ---------------- Helpers ---------------- */
+    const $ = id=>document.getElementById(id);
+    const show = (m, ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${m}</div>`; };
+    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
+    const EVERSEND_LINK = "https://eversend.me/oblinks";
+
+    let currentUser=null, depId=null, depData=null, selectedFile=null;
+
+    function getParam(name){ return new URLSearchParams(location.search).get(name) || ""; }
+
+    async function pickDepositToUse(){
+      // 1) If ?deposit= provided, use it
+      const qId = getParam("deposit");
+      if (qId) {
+        const ref = doc(db,"deposits",qId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) return { id:qId, data:snap.data() };
+      }
+      // 2) Otherwise: most recent pending for this user
+      const q = query(
+        collection(db,"deposits"),
+        where("uid","==", currentUser.uid),
+        where("status","==","pending"),
+        orderBy("createdAt","desc"),
+        limit(1)
+      );
+      const s = await getDocs(q);
+      if (!s.empty){
+        const d = s.docs[0];
+        return { id:d.id, data:d.data() };
+      }
+      return null;
+    }
+
+    async function loadDeposit(){
+      const picked = await pickDepositToUse();
+      if (!picked){ show("No pending deposit found. Please start again from Recharge.", false); return; }
+
+      depId = picked.id;
+      depData = picked.data;
+
+      if (depData.uid !== currentUser.uid){ show("This deposit does not belong to your account."); return; }
+
+      $("depPhone").textContent  = depData.phone || "—";
+      $("depAmount").textContent = UGX(depData.amount || 0);
+    }
+
+    // Open Eversend (no link text displayed)
+    $("openEversend").addEventListener("click", ()=>{
+      const w = window.open(EVERSEND_LINK, "_blank", "noopener");
+      if(!w){ show("You will be taken to eversend payment form."); }
+    });
+
+    // Screenshot picker -> enable Successful
+    $("fileInput").addEventListener("change", (e)=>{
+      selectedFile = e.target.files?.[0] || null;
+      if (selectedFile){
+        const url = URL.createObjectURL(selectedFile);
+        $("previewImg").src = url;
+        $("previewWrap").style.display = "block";
+        $("markSuccess").disabled = false;   // allow proceed only after a file is chosen
+      } else {
+        $("previewWrap").style.display = "none";
+        $("markSuccess").disabled = true;
+      }
+    });
+
+    // Upload to Cloudinary (unsigned)
+    async function uploadToCloudinary(file){
+      const endpoint = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("upload_preset", cloudinaryConfig.uploadPreset);
+      const res = await fetch(endpoint, { method:"POST", body: fd });
+      if (!res.ok) throw new Error("Cloudinary upload failed.");
+      const data = await res.json();
+      return data.secure_url || data.url;
+    }
+
+    // Successful -> upload screenshot, mark deposit successful, credit wallet
+    $("markSuccess").addEventListener("click", async ()=>{
+      if (!currentUser || !depId || !depData){ show("Not ready. Please reload."); return; }
+      if (!selectedFile){ show("Please upload the payment screenshot first."); return; }
+
+      try{
+        show("Uploading receipt…");
+        const receiptUrl = await uploadToCloudinary(selectedFile);
+
+        await runTransaction(db, async (tx)=>{
+          const dRef = doc(db,"deposits",depId);
+          const uRef = doc(db,"users",currentUser.uid);
+
+          const dSnap = await tx.get(dRef);
+          if (!dSnap.exists()) throw new Error("Deposit not found.");
+          const d = dSnap.data();
+
+          if (d.uid !== currentUser.uid) throw new Error("Not your deposit.");
+          if (d.status !== "pending")   throw new Error("Deposit already processed.");
+
+          const amount = Number(d.amount || 0);
+
+          const uSnap = await tx.get(uRef);
+          const u = uSnap.exists() ? uSnap.data() : {};
+          const newBal = Number(u.mainWallet || 0) + amount;
+
+          tx.update(dRef, {
+            status: "successful",
+            receiptUrl,
+            updatedAt: serverTimestamp(),
+            creditedAt: serverTimestamp()
+          });
+          tx.set(uRef, { mainWallet: newBal }, { merge:true });
+        });
+
+        show("Deposit marked successful and wallet credited. Thank you!", true);
+        $("markSuccess").disabled = true;
+      }catch(err){
+        console.error(err);
+        show(err.message || "Failed to complete deposit.");
+      }
+    });
+
+    onAuthStateChanged(auth, async (user)=>{
+      if(!user){ location.href="login.html"; return; }
+      currentUser = user;
+      await loadDeposit();
+    });
+  </script>
+</body>
+</html>
