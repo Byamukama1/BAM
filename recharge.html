@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Recharge</title>
+  <style>
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --ink:#161617; --muted:#6b7280; --card:#fff;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{
+      margin:0;color:var(--ink);
+      background:
+        radial-gradient(120% 120% at -10% -10%, #fbeceb 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, #f6d8d5 0%, transparent 60%),
+        linear-gradient(180deg,#fff 0%,#fbeceb 30%,#f6d8d5 85%,#f2c4bf 100%);
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:14px 16px;font-weight:900}
+    .wrap{max-width:900px;margin:0 auto;padding:14px}
+    .card{background:var(--card);border-radius:16px;box-shadow:0 12px 28px rgba(0,0,0,.06);padding:16px}
+
+    .section-title{font-weight:900;margin:6px 0 10px}
+    .muted{color:var(--muted);font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+    .input{width:100%;padding:11px 12px;border:1px solid #e5e7eb;border-radius:12px;font-weight:600}
+    .btn{appearance:none;border:none;border-radius:12px;padding:10px 14px;font-weight:900;cursor:pointer}
+    .btn.gold{background:var(--gold);color:#111;box-shadow:0 8px 18px rgba(251,191,36,.25)}
+    .btn.gray{background:#e5e7eb}
+    .btn.red{background:var(--brand);color:#fff}
+
+    .phone-list{display:grid;gap:10px}
+    .phone-item{display:flex;align-items:center;gap:10px;border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;background:#fff}
+    .phone-item input[type="radio"]{width:18px;height:18px}
+    .phone-text{font-weight:800}
+    .edit-wrap{display:flex;gap:6px;margin-left:auto}
+
+    /* AMOUNTS — no scrolling; wrap into a neat grid */
+    .chipbar{
+      display:grid;
+      grid-template-columns:repeat(auto-fit, minmax(120px, 1fr));
+      gap:8px;
+      margin-top:6px;
+    }
+    .chip{
+      display:block;
+      width:100%;
+      text-align:center;
+      border:1px solid #f3d7d7;
+      background:#fff;
+      border-radius:999px;
+      padding:8px 10px;
+      font-weight:900;
+      cursor:pointer;
+      font-size:14px;
+      line-height:1.1;
+    }
+    .chip.active{
+      background:linear-gradient(135deg,var(--brand),var(--brand-d));
+      color:#fff;border-color:transparent
+    }
+
+    .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+    .small{font-size:12px;color:#6b7280}
+  </style>
+</head>
+<body>
+  <header>BAM • Recharge</header>
+
+  <main class="wrap">
+    <section class="card">
+      <h2 class="section-title">1) Deposit number (WhatsApp)</h2>
+      <p class="muted">Add the phone number you’ll use on Eversend. Prefer a WhatsApp number for easy OTP delivery. You can save up to <b>2</b> numbers.</p>
+
+      <div class="row" style="margin-top:6px">
+        <input id="phoneInput" class="input" placeholder="07… or 2567…" maxlength="20" />
+        <button id="addPhoneBtn" class="btn gold">Save number</button>
+      </div>
+      <p class="small">Tip: enter it exactly as you’ll type it on Eversend.</p>
+
+      <div id="phoneList" class="phone-list" style="margin-top:10px"></div>
+
+      <h2 class="section-title" style="margin-top:16px">2) Choose deposit amount</h2>
+      <div id="amountBar" class="chipbar" aria-label="Deposit amounts"></div>
+
+      <div id="statusArea"></div>
+
+      <div class="row" style="margin-top:12px">
+        <button id="continueBtn" class="btn red">Continue</button>
+        <span id="summary" class="small"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase (ESM) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, serverTimestamp,
+      collection, addDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const db   = getFirestore(app);
+    const auth = getAuth(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const show = (msg, ok=false)=>{ $("statusArea").innerHTML =
+      `<div class="banner ${ok?'ok':''}">${msg}</div>`; };
+    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
+
+    const AMOUNTS = [80000, 229000, 625000, 1940000, 5210000, 13480000, 30010000, 60010000, 99010000];
+
+    let currentUser = null;
+    let numbers = [];
+    let selectedPhone = "";
+    let selectedAmount = AMOUNTS[0];
+    let editingIndex = -1;
+
+    function renderAmounts(){
+      const bar = $("amountBar"); bar.innerHTML = "";
+      AMOUNTS.forEach(a=>{
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip" + (a===selectedAmount ? " active" : "");
+        chip.textContent = UGX(a);
+        chip.onclick = ()=>{
+          selectedAmount = a;
+          renderAmounts();
+          updateSummary();
+        };
+        bar.appendChild(chip);
+      });
+    }
+
+    function renderNumbers(){
+      const list = $("phoneList");
+      list.innerHTML = "";
+      numbers.forEach((p, i)=>{
+        const row = document.createElement("div");
+        row.className = "phone-item";
+        row.innerHTML = `
+          <input type="radio" name="depnum" ${selectedPhone===p? "checked":""} />
+          <div class="phone-text">${p}</div>
+          <div class="edit-wrap">
+            <button class="btn gray" data-edit="${i}">Edit</button>
+            <button class="btn gray" data-del="${i}">Remove</button>
+          </div>`;
+        row.querySelector('input[type="radio"]').addEventListener("change", ()=>{
+          selectedPhone = p; updateSummary();
+        });
+        row.querySelector('[data-edit]').addEventListener("click", ()=>{
+          editingIndex = i;
+          $("phoneInput").value = p;
+          $("phoneInput").focus();
+          $("addPhoneBtn").textContent = "Update number";
+        });
+        row.querySelector('[data-del]').addEventListener("click", async ()=>{
+          numbers.splice(i,1);
+          await saveNumbers();
+        });
+        list.appendChild(row);
+      });
+
+      const canAdd = numbers.length < 2;
+      $("phoneInput").disabled = !canAdd && editingIndex<0;
+      $("addPhoneBtn").disabled = !canAdd && editingIndex<0;
+      $("phoneInput").placeholder = (!canAdd && editingIndex<0) ? "Limit reached (2 numbers)" : "07… or 2567…";
+    }
+
+    function updateSummary(){
+      $("summary").textContent = selectedPhone
+        ? `Selected: ${selectedPhone} • ${UGX(selectedAmount)}`
+        : `Choose a number • ${UGX(selectedAmount)}`;
+    }
+
+    async function saveNumbers(){
+      if (!currentUser) return;
+      const ref = doc(db,"users",currentUser.uid);
+      await setDoc(ref, { depositNumbers: numbers }, { merge:true });
+      editingIndex = -1;
+      $("addPhoneBtn").textContent = "Save number";
+      renderNumbers();
+      show("Numbers updated.", true);
+    }
+
+    function cleanPhone(raw){
+      return String(raw||"").replace(/\s+/g," ").trim();
+    }
+
+    $("addPhoneBtn").addEventListener("click", async ()=>{
+      const input = cleanPhone($("phoneInput").value);
+      if (!input){ show("Enter a valid phone number."); return; }
+
+      if (editingIndex < 0){
+        if (numbers.includes(input)){ show("This number is already saved."); return; }
+        if (numbers.length >= 2){ show("You can only save 2 numbers."); return; }
+        numbers.push(input);
+        selectedPhone = input;
+      } else {
+        numbers[editingIndex] = input;
+        selectedPhone = input;
+      }
+      await saveNumbers();
+      $("phoneInput").value = "";
+      updateSummary();
+    });
+
+    $("continueBtn").addEventListener("click", async ()=>{
+      if (!currentUser){ show("Please sign in again."); return; }
+      if (!selectedPhone){ show("Select (or add) a deposit number first."); return; }
+      if (!selectedAmount){ show("Choose an amount to deposit."); return; }
+
+      try{
+        const depRef = await addDoc(collection(db,"deposits"), {
+          uid: currentUser.uid,
+          phone: selectedPhone,
+          amount: selectedAmount,
+          status: "pending",
+          createdAt: serverTimestamp()
+        });
+        show("Creating deposit…", true);
+        location.href = `eversend.html?deposit=${encodeURIComponent(depRef.id)}`;
+      }catch(e){
+        console.error(e);
+        show("Failed to create deposit. Please try again.");
+      }
+    });
+
+    async function loadUser(){
+      const ref = doc(db,"users",currentUser.uid);
+      const snap = await getDoc(ref);
+      const data = snap.exists() ? snap.data() : {};
+      numbers = Array.isArray(data.depositNumbers) ? data.depositNumbers.slice(0,2) : [];
+      selectedPhone = numbers[0] || "";
+      renderNumbers();
+      renderAmounts();
+      updateSummary();
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){ location.href = "login.html"; return; }
+      currentUser = user;
+      await loadUser();
+    });
+  </script>
+</body>
+</html>
