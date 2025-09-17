@@ -5,49 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BAM • Tasks</title>
   <style>
-    :root{ --brand-red:#9b1c1c; --brand-red-d:#7c1111; --brand-gold:#fbbf24;
-      --rose-25:#fbeceb; --rose-50:#f6d8d5; --rose-75:#f2c4bf; --ink:#161617; --muted:#6b7280; }
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --rose25:#fbeceb; --rose50:#f6d8d5; --rose75:#f2c4bf;
+      --ink:#161617; --muted:#6b7280;
+    }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-    body{ margin:0;color:var(--ink);
+    body{
+      margin:0;color:var(--ink);
       background:
-        radial-gradient(120% 120% at -10% -10%, var(--rose-25) 0%, transparent 60%),
-        radial-gradient(120% 120% at 110% -10%, var(--rose-50) 0%, transparent 60%),
-        linear-gradient(180deg, #fff 0%, var(--rose-25) 30%, var(--rose-50) 85%, var(--rose-75) 100%); }
-    header{ background:linear-gradient(135deg,var(--brand-red),var(--brand-red-d));
-      color:#fff;padding:14px 16px;font-weight:800;letter-spacing:.3px }
+        radial-gradient(120% 120% at -10% -10%, var(--rose25) 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, var(--rose50) 0%, transparent 60%),
+        linear-gradient(180deg,#fff 0%,var(--rose25) 30%,var(--rose50) 85%,var(--rose75) 100%);
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:14px 16px;font-weight:800;letter-spacing:.3px}
     .wrap{max-width:1100px;margin:0 auto;padding:12px 14px 96px}
-
-    .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;
-      padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
-    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
-
-    .card{background:rgba(255,255,255,.86);border-radius:16px;
-      box-shadow:0 10px 24px rgba(0,0,0,.06);padding:12px;margin:12px 0}
+    .card{background:rgba(255,255,255,.9);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);padding:12px;margin:12px 0}
     .title{font-weight:800;margin:6px 2px 10px}
     .media{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:16/9}
     .media iframe,.media video{width:100%;height:100%;display:block}
     .desc{margin-top:10px;font-size:14px;color:#3a2e2e}
     .controls{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
     .btn{appearance:none;border:none;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer}
-    .btn.primary{background:var(--brand-gold);color:#111}
+    .btn.primary{background:var(--gold);color:#111}
     .btn[disabled]{opacity:.55;cursor:not-allowed}
     .earn{font-size:12px;font-weight:800;color:#0b5d2c;background:#e8fff2;border:1px solid #c3efda;border-radius:999px;padding:6px 10px}
     .muted{color:var(--muted);font-size:12px}
-
-    .nav{ position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
+    .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+    .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
       display:flex;justify-content:space-around;padding:10px 8px 12px;z-index:10;backdrop-filter:blur(4px);
-      box-shadow:0 -6px 20px rgba(0,0,0,.06) }
+      box-shadow:0 -6px 20px rgba(0,0,0,.06)}
     .nav a{flex:1;text-align:center;text-decoration:none;color:#6b4a4a;font-size:12px;padding:6px 0;border-radius:16px;margin:0 4px;transition:.15s}
-    .nav a.active{color:#fff;background:var(--brand-red);box-shadow:0 6px 16px rgba(155,28,28,.25);font-weight:800}
+    .nav a.active{color:#fff;background:var(--brand);box-shadow:0 6px 16px rgba(155,28,28,.25);font-weight:800}
     .nav .n-ico{display:block;font-size:20px;margin-bottom:4px}
-
-    .overlay{ position:fixed;inset:0;background:rgba(255,255,255,.96);
-      display:grid;place-items:center;z-index:9999 }
-    .overlay .box{ text-align:center;color:#7c1111;font-weight:700;
-      background:#fff;border:1px solid #f6caca;border-radius:14px;
-      padding:16px 18px;box-shadow:0 10px 24px rgba(0,0,0,.08) }
+    .overlay{position:fixed;inset:0;background:rgba(255,255,255,.96);display:grid;place-items:center;z-index:9999}
+    .overlay .box{text-align:center;color:#7c1111;font-weight:700;background:#fff;border:1px solid #f6caca;border-radius:14px;
+      padding:16px 18px;box-shadow:0 10px 24px rgba(0,0,0,.08)}
     .spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(155,28,28,.2);
-      border-top-color:var(--brand-red);animation:spin .8s linear infinite;margin:0 auto 10px}
+      border-top-color:var(--brand);animation:spin .8s linear infinite;margin:0 auto 10px}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
@@ -58,8 +54,8 @@
   <div id="pageLoading" class="overlay">
     <div class="box">
       <div class="spinner"></div>
-      <div>Loading your today’s tasks.</div>
-      <div class="muted" style="margin-top:6px">Tap <b>Claim</b> to start the countdown.</div>
+      <div>Loading your tasks…</div>
+      <div class="muted" style="margin-top:6px">Tap <b>Claim</b> after watching.</div>
     </div>
   </div>
 
@@ -88,6 +84,7 @@
       serverTimestamp, where, runTransaction
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    /* ---------- Firebase ---------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
       authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -97,17 +94,18 @@
       appId: "1:649603741902:web:e67f20363f485c0948789f",
       measurementId: "G-W2DY026FXB"
     };
-
     const app = initializeApp(firebaseConfig);
     getAnalytics(app);
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    /* ---------- Helpers & Config ---------- */
     const $ = (id)=>document.getElementById(id);
     const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
     const todayKey = ()=> new Date().toISOString().slice(0,10);
+    const shuffle = (arr)=>{ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
 
-    // === LEVEL TABLE (matches Levels page) ===
+    // Payouts & daily caps
     const LEVEL_RATES = {
       INTERN: { perTask: 300,  dailyMax: 5  },
       B1:     { perTask: 330,  dailyMax: 7  },
@@ -115,77 +113,70 @@
       B3:     { perTask: 735,  dailyMax: 28 },
       B4:     { perTask: 1200, dailyMax: 54 },
       B5:     { perTask: 2250, dailyMax: 80 },
-      B6:     { perTask: 3700, dailyMax: 130 },
-      B7:     { perTask: 6500, dailyMax: 175 },
-      B8:     { perTask: 8750, dailyMax: 260 },
+      B6:     { perTask: 3700,  dailyMax: 130 },
+      B7:     { perTask: 6500,  dailyMax: 175 },
+      B8:     { perTask: 8750,  dailyMax: 260 },
       B9:     { perTask: 15000,dailyMax: 300 },
     };
 
-    // ===== Internship config =====
-    const INTERNSHIP_DAYS = 3; // hard limit
+    const INTERNSHIP_DAYS = 3;
+    const levelsDesc = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // highest first
 
-    // Determine level from user doc (highest joined B* or INTERN)
-    function resolveLevelFromUser(userDoc){
-      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
-      for (const code of order){
-        const entry = userDoc?.[code];
-        if (entry && entry.status === "joined") return code;
-      }
-      if (userDoc?.level && LEVEL_RATES[userDoc.level]) return userDoc.level; // legacy
-      return "INTERN";
+    function showBanner(html, ok=false){
+      const node = document.createElement("div");
+      node.className = "banner" + (ok ? " ok": "");
+      node.innerHTML = html;
+      const area = $("statusArea"); area.innerHTML = ""; area.appendChild(node);
     }
 
-    async function getUserInfo(uid){
-      const ref = doc(db,"users",uid);
-      const snap = await getDoc(ref);
-      const u = snap.exists() ? snap.data() : {};
-      return { user: u, level: resolveLevelFromUser(u) };
-    }
-
-    // --- Internship helpers (store start date in tasks/{uid}.internshipStart)
-    const daysBetween = (a,b)=> Math.floor((b - a)/(24*3600*1000));
-    function tsToDate(v){
-      if (!v) return null;
-      if (v.toDate) return v.toDate();
-      const d = new Date(v); return isNaN(d) ? null : d;
-    }
+    // internship data
+    function tsToDate(v){ if (!v) return null; if (v.toDate) return v.toDate(); const d = new Date(v); return isNaN(d)?null:d; }
     async function ensureInternshipStart(uid){
       const tRef = doc(db,"tasks",uid);
       const tSnap = await getDoc(tRef);
       if (!tSnap.exists() || !tSnap.data().internshipStart){
-        await setDoc(tRef, { internshipStart: serverTimestamp(), createdAt: serverTimestamp() }, { merge:true });
-        return new Date(); // optimistic local now
+        await setDoc(tRef,{ internshipStart: serverTimestamp(), createdAt: serverTimestamp() },{ merge:true });
+        return new Date();
       }
       return tsToDate(tSnap.data().internshipStart) || new Date();
     }
+    const daysBetween = (a,b)=> Math.floor((b-a)/(24*3600*1000));
     async function getInternshipInfo(uid){
       const start = await ensureInternshipStart(uid);
       const elapsed = daysBetween(start, new Date());
-      const left = Math.max(0, INTERNSHIP_DAYS - elapsed);
-      return { start, elapsed, left, ended: elapsed >= INTERNSHIP_DAYS };
+      return { elapsed, left: Math.max(0, INTERNSHIP_DAYS - elapsed), ended: elapsed >= INTERNSHIP_DAYS };
     }
 
-    async function countToday(uid){
+    // levels
+    function highestLevelWithStatus(userDoc, status){
+      for (const code of levelsDesc){
+        const entry = userDoc?.[code];
+        if (entry && entry.status === status) return code;
+      }
+      return null;
+    }
+
+    // ==== EVENTS HELPERS (no composite index needed) ====
+    async function getTodayEvents(uid){
       const evCol = collection(db,"tasks",uid,"events");
       const qy = query(evCol, where("dateKey","==", todayKey()));
       const snap = await getDocs(qy);
-      return snap.size;
+      const events = [];
+      snap.forEach(d => events.push({ id:d.id, ...d.data() }));
+      return events;
+    }
+    async function countToday(uid){
+      const events = await getTodayEvents(uid);
+      return events.length;
     }
     async function alreadyDoneToday(uid, adId){
-      const evCol = collection(db,"tasks",uid,"events");
-      const qy = query(evCol, where("dateKey","==", todayKey()), where("adId","==", adId));
-      const snap = await getDocs(qy);
-      return !snap.empty;
-    }
-    function showBanner(msg, ok=false){
-      const node = document.createElement("div");
-      node.className = "banner" + (ok ? " ok":"");
-      node.innerHTML = msg;
-      const area = $("statusArea");
-      area.innerHTML = "";
-      area.appendChild(node);
+      const events = await getTodayEvents(uid);
+      return events.some(e => String(e.adId) === String(adId));
     }
 
+    /* ---------- YouTube helpers ---------- */
+    const pendingYT = []; let ytReady = false;
+    window.onYouTubeIframeAPIReady = ()=>{ ytReady = true; for (const p of pendingYT){ p.attach(); } pendingYT.length = 0; };
     function extractYouTubeId(input){
       if (!input) return "";
       const s = String(input);
@@ -196,45 +187,37 @@
       m = s.match(/^([A-Za-z0-9_-]{11})$/); if (m) return m[1];
       return "";
     }
-    function youTubeEmbedSrcFromAd(ad){
+    function youTubeEmbedSrc(ad){
       const id = ad.videoId || extractYouTubeId(ad.url || "");
       if (!id) return "";
       const origin = encodeURIComponent(location.origin);
       return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
     }
 
-    const pendingYT = [];
-    let ytReady = false;
-    window.onYouTubeIframeAPIReady = () => {
-      ytReady = true;
-      for (const p of pendingYT) { const player = attachYTPlayer(p.iframeId, p.onPlay); p.setPlayer?.(player); }
-      pendingYT.length = 0;
-    };
-    function attachYTPlayer(iframeId, onPlay){
-      if (!window.YT || !window.YT.Player) return null;
-      return new window.YT.Player(iframeId, { events: { onStateChange: (e)=>{ if (e?.data === 1) onPlay?.(); } } });
-    }
+    /* ---------- Rendering ---------- */
+    let MODE = "INTERN"; // "INTERN" | "LEVEL" | "BLOCKED"
+    let ACTIVE_LEVEL = "INTERN";
 
-    // Global internship flag used during render/claim
-    let currentLevel = "INTERN";
-    let internshipEnded = false;
-
-    async function loadAdvertsAndRender(levelCfg){
+    async function loadAdvertsAndRender(levelCfg, uid){
       const list = $("adList");
-      try{
-        const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc"), limit(12)));
-        if (snap.empty){
-          list.innerHTML = '<div class="banner">No adverts available yet.</div>';
-        } else {
-          list.innerHTML = "";
-          snap.forEach(d=> renderAdCard(list, { id:d.id, ...d.data() }, levelCfg));
-        }
-      } finally {
-        hideOverlay(); // hide spinner regardless
+      const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc"), limit(20)));
+      if (snap.empty) { list.innerHTML = '<div class="banner">No adverts available yet.</div>'; hideOverlay(); return; }
+
+      // collect and shuffle
+      const items = [];
+      snap.forEach(d=> items.push({ id:d.id, ...d.data() }));
+      shuffle(items);
+
+      list.innerHTML = "";
+      // render sequentially so we can await the “already claimed?” check
+      for (const ad of items){
+        // eslint-disable-next-line no-await-in-loop
+        await renderAdCard(list, ad, levelCfg, uid);
       }
+      hideOverlay();
     }
 
-    function renderAdCard(container, ad, levelCfg){
+    async function renderAdCard(container, ad, levelCfg, uid){
       const card = document.createElement("section");
       card.className = "card";
 
@@ -242,14 +225,14 @@
       const mediaId  = `media_${ad.id}`;
       const btnId    = `btn_${ad.id}`;
 
-      const state = { started:false, timer:null, elapsed:0, processing:false };
+      const state = { started:false, timer:null, processing:false };
       let ytPlayer = null, videoEl = null;
 
       const earnAmount = Number(levelCfg.perTask || 0);
       const earnStr = `UGX ${earnAmount.toLocaleString("en-UG")}`;
 
       const isYT = ad.sourceType === "youtube";
-      const ytSrc = isYT ? youTubeEmbedSrcFromAd(ad) : "";
+      const ytSrc = isYT ? youTubeEmbedSrc(ad) : "";
       const mediaHtml = isYT
         ? `<iframe id="${iframeId}" src="${ytSrc}" frameborder="0"
              allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; accelerometer"
@@ -263,9 +246,7 @@
         <div class="controls">
           <span class="earn">Earn ${earnStr}</span>
           <button class="btn primary" id="${btnId}">${
-            currentLevel==="INTERN" && internshipEnded
-            ? "Internship ended"
-            : "Claim (10s)"
+            MODE==="BLOCKED" ? "Under review – wait" : "Claim (10s)"
           }</button>
         </div>
       `;
@@ -274,51 +255,50 @@
       const btn = card.querySelector(`#${btnId}`);
       const mediaWrap = card.querySelector(`#${mediaId}`);
 
-      // Disable button entirely when internship has ended
-      if (currentLevel==="INTERN" && internshipEnded){
-        btn.disabled = true;
-      }
+      // Disable if blocked (under_review & internship finished)
+      if (MODE === "BLOCKED"){ btn.disabled = true; }
 
       if (isYT && ytSrc){
-        const setPlayer = (p)=> ytPlayer = p;
-        const onPlay = ()=>{};
-        if (ytReady) setPlayer(attachYTPlayer(iframeId, onPlay));
-        else pendingYT.push({ iframeId, onPlay, setPlayer });
+        const attach = ()=>{
+          if (window.YT && window.YT.Player){
+            ytPlayer = new window.YT.Player(iframeId, { events: { onStateChange: ()=>{} } });
+          }
+        };
+        if (ytReady) attach(); else pendingYT.push({ attach });
       } else if (!isYT) {
         videoEl = mediaWrap.querySelector("video");
       } else {
         mediaWrap.innerHTML = `<div class="banner">Invalid YouTube link for this advert.</div>`;
       }
 
+      // On render: mark button as Already claimed if user did this ad today
+      try{
+        const claimed = await alreadyDoneToday(uid, ad.id);
+        if (claimed){
+          btn.textContent = "Already claimed";
+          btn.disabled = true;
+        }
+      }catch{ /* ignore */ }
+
       function startCountdown(){
         state.started = true;
-        const startedAt = Date.now();
+        const start = Date.now();
         btn.disabled = true;
-        state.timer = setInterval(()=>{
-          state.elapsed = Math.floor((Date.now() - startedAt)/1000);
-          if (state.elapsed >= 10){
-            clearInterval(state.timer); state.timer = null;
-            btn.textContent = "Claim Reward";
-            btn.disabled = false;
-          }else{
-            btn.textContent = `Claim (${10 - state.elapsed}s)`;
-          }
-        }, 300);
+        const tick = ()=>{
+          const elapsed = Math.floor((Date.now() - start)/1000);
+          if (elapsed >= 10){ clearInterval(state.timer); state.timer=null; btn.textContent = "Claim Reward"; btn.disabled = false; }
+          else { btn.textContent = `Claim (${10 - elapsed}s)`; }
+        };
+        state.timer = setInterval(tick, 300);
       }
 
       btn.addEventListener("click", async ()=>{
-        // Block immediately if internship ended
-        if (currentLevel==="INTERN" && internshipEnded){
-          showBanner(
-            "Your 3-day internship has ended. <b>Recharge</b> to unlock withdrawals and join a paid level for higher daily tasks.",
-          );
-          return;
-        }
+        if (MODE === "BLOCKED") return;
 
         if (!state.started){
           try{
             if (isYT && ytPlayer){ ytPlayer.unMute?.(); ytPlayer.playVideo?.(); }
-            else if (videoEl){ videoEl.muted = false; await videoEl.play().catch(()=>{}); }
+            else if (videoEl){ videoEl.muted=false; await videoEl.play().catch(()=>{}); }
           }catch{}
           startCountdown();
           return;
@@ -330,10 +310,11 @@
         try{
           const user = auth.currentUser; if (!user) throw new Error("Please sign in again.");
 
-          // Always re-read level (in case they upgraded mid-session)
-          const { level } = await getUserInfo(user.uid);
-          const cfg = LEVEL_RATES[level] || LEVEL_RATES.INTERN;
+          // Level used for payout
+          const levelUsed = MODE === "LEVEL" ? ACTIVE_LEVEL : "INTERN";
+          const cfg = LEVEL_RATES[levelUsed];
 
+          // Safety checks
           const done = await countToday(user.uid);
           if (done >= cfg.dailyMax){
             showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`);
@@ -341,59 +322,100 @@
           }
           if (await alreadyDoneToday(user.uid, ad.id)){
             btn.textContent = "Already claimed";
-            showBanner("You already completed this advert today."); return;
+            btn.disabled = true;
+            showBanner("You already completed this advert today.");
+            return;
           }
 
+          // Credit and log event
           await runTransaction(db, async (tx)=>{
             const uref = doc(db,"users",user.uid);
             const usnap = await tx.get(uref);
             const u = usnap.exists() ? usnap.data() : {};
             const next = Number(u.commissionWallet || 0) + Number(cfg.perTask);
             tx.set(uref, { commissionWallet: next }, { merge:true });
+
             const evRef = doc(collection(db,"tasks",user.uid,"events"));
-            tx.set(evRef, { adId: ad.id, amount: cfg.perTask, dateKey: todayKey(), createdAt: serverTimestamp(),
-              sourceType: ad.sourceType || null, url: ad.url || null, title: ad.title || null, levelUsed: level });
+            tx.set(evRef, {
+              adId: ad.id,
+              amount: cfg.perTask,
+              dateKey: todayKey(),
+              createdAt: serverTimestamp(),
+              sourceType: ad.sourceType || null,
+              url: ad.url || null,
+              title: ad.title || null,
+              levelUsed
+            });
           });
 
-          btn.textContent = `Claimed +UGX ${Number(cfg.perTask).toLocaleString("en-UG")}`;
+          // UI feedback
           showBanner(`Great! +UGX ${Number(cfg.perTask).toLocaleString("en-UG")} added to your commission wallet.`, true);
+          btn.textContent = "Already claimed";
+          btn.disabled = true;
         }catch(e){
           console.error(e);
           btn.textContent = "Try again";
           btn.disabled = false;
-          showBanner(e.message || "Failed to claim reward.");
+          showBanner(e?.message || "Failed to claim reward.");
         }finally{
           state.processing = false;
         }
       });
     }
 
+    /* ---------- Main flow ---------- */
     onAuthStateChanged(auth, async (user)=>{
       if (!user){ location.href = "login.html"; return; }
 
-      // Make sure tasks doc exists & internship start is set
-      const { level } = await getUserInfo(user.uid);
-      currentLevel = level;
+      try{
+        const uRef = doc(db,"users",user.uid);
+        const uSnap = await getDoc(uRef);
+        const u = uSnap.exists() ? uSnap.data() : {};
 
-      if (level === "INTERN"){
+        const verifiedLevel = highestLevelWithStatus(u, "verified");
+        const underReviewLevel = highestLevelWithStatus(u, "under_review");
+
+        if (verifiedLevel){
+          MODE = "LEVEL";
+          ACTIVE_LEVEL = verifiedLevel;
+          const cfg = LEVEL_RATES[verifiedLevel];
+          showBanner(`Status: <b>Verified (${verifiedLevel})</b>. You earn <b>UGX ${cfg.perTask.toLocaleString("en-UG")}</b> per task, up to <b>${cfg.dailyMax}</b> tasks daily.`, true);
+          await loadAdvertsAndRender(cfg, user.uid);
+          return;
+        }
+
         const { left, ended } = await getInternshipInfo(user.uid);
-        internshipEnded = ended;
 
+        if (underReviewLevel){
+          if (ended){
+            MODE = "BLOCKED";
+            ACTIVE_LEVEL = "INTERN";
+            showBanner(`Your internship finished. Upgrade to <b>${underReviewLevel}</b> is <b>under review</b>. Please wait a few hours or <b>contact manager</b> for faster verification.`);
+            await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
+            return;
+          } else {
+            MODE = "INTERN";
+            ACTIVE_LEVEL = "INTERN";
+            const dayWord = left === 1 ? "day" : "days";
+            showBanner(`Upgrade to <b>${underReviewLevel}</b> is under review. Meanwhile, continue with your internship — <b>${left} ${dayWord} left</b>.`);
+            await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
+            return;
+          }
+        }
+
+        // No level yet
+        MODE = "INTERN";
+        ACTIVE_LEVEL = "INTERN";
         if (ended){
-          showBanner(
-            "Your 3-day internship has ended. <b>Recharge</b> now to unlock withdrawals and join a paid level for more daily tasks."
-          );
+          showBanner(`Your 3-day internship has ended. <b>Recharge</b> to unlock withdrawals and join a paid level for higher daily tasks.`);
         } else {
           const dayWord = left === 1 ? "day" : "days";
-          showBanner(
-            `Internship in progress — <b>${left} ${dayWord} left</b>. You can earn UGX 300 per task (5 tasks/day). Recharge anytime to unlock withdrawals and upgrade.`
-          );
+          showBanner(`Internship in progress — <b>${left} ${dayWord} left</b>. You can earn UGX 300 per task (5 tasks/day).`);
         }
+        await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
+      } finally {
+        hideOverlay();
       }
-
-      // Render adverts with the current level’s payout
-      const cfg = LEVEL_RATES[currentLevel] || LEVEL_RATES.INTERN;
-      await loadAdvertsAndRender(cfg);
     });
   </script>
 </body>
