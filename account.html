@@ -24,12 +24,11 @@
     .top{
       background:linear-gradient(135deg,var(--brand-red),var(--brand-red-d));
       color:#fff;padding:14px 16px;
-      display:flex;align-items:center;justify-content:flex-start;gap:10px
+      display:flex;align-items:center;gap:12px
     }
-    .brand{display:flex;align-items:center;gap:10px}
     .avatar{
-      width:40px;height:40px;border-radius:50%;background:#fff;color:var(--brand-red);
-      display:grid;place-items:center;font-weight:800
+      width:44px;height:44px;border-radius:50%;background:#fff;color:var(--brand-red);
+      display:grid;place-items:center;font-weight:900
     }
     .title b{display:block}
     .title small{opacity:.9}
@@ -40,12 +39,9 @@
       box-shadow:0 8px 26px rgba(0,0,0,.06)
     }
 
-    /* Two wallet tiles (no buttons inside) */
+    /* Wallet tiles */
     .wallet-row{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
-      align-items:stretch;
+      display:grid;grid-template-columns: 1fr 1fr;gap:14px;align-items:stretch;
     }
     .wallet{
       background:linear-gradient(135deg,#fff,#fff7df);
@@ -54,12 +50,9 @@
     .wallet h4{margin:0 0 6px;color:#6b4a4a;font-size:13px;font-weight:700}
     .amount{font-size:22px;font-weight:900;color:#b7791f}
 
-    /* Buttons row – sits BELOW wallet tiles but aligned left/right */
+    /* Buttons row */
     .wallet-actions{
-      margin-top:10px;
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:14px;
+      margin-top:10px;display:grid;grid-template-columns: 1fr 1fr;gap:14px;
     }
     .btn{
       border:none;border-radius:999px;background:var(--brand-gold);color:#111;
@@ -68,21 +61,14 @@
     .btn.secondary{background:#f1f5f9;color:#111}
 
     /* Stats grid */
-    .stats{
-      margin-top:14px;display:grid;gap:10px;
-      grid-template-columns:repeat(2,1fr)
-    }
+    .stats{margin-top:14px;display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
     @media (min-width:760px){ .stats{grid-template-columns:repeat(3,1fr)} }
-    .stat{
-      background:#fff;border-radius:14px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.05)
-    }
+    .stat{background:#fff;border-radius:14px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.05)}
     .stat small{display:block;color:#777}
     .stat b{font-size:16px}
 
-    /* Action icons */
-    .grid-small{
-      margin:16px 0 6px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;justify-items:center
-    }
+    /* Quick actions */
+    .grid-small{margin:16px 0 6px;display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;justify-items:center}
     .btn-mini{text-align:center;text-decoration:none;color:var(--ink);font-size:11px;font-weight:600;line-height:1.1}
     .ico{
       width:50px;height:50px;border-radius:50%;
@@ -106,35 +92,33 @@
   </style>
 </head>
 <body>
+  <!-- Top -->
   <header class="top">
-    <div class="brand">
-      <div class="avatar" id="avatar">B</div>
-      <div class="title">
-        <b id="displayName">Member</b>
-        <!-- ⬇️ Level + Status added here -->
-        <small>
-           <span id="levelBadge">Level: Intern</span> <br>
-          <span id="statusBadge">Status: —</span>
-        </small>
-      </div>
+    <div class="avatar" id="avatar">B</div>
+    <div class="title">
+      <b id="displayName">Member</b>
+      <small>
+        <span id="levelBadge">Level: Intern</span><br />
+        <span id="statusBadge">Status: —</span>
+      </small>
     </div>
   </header>
 
   <main class="wrap">
     <section class="profile-card">
-      <!-- Two wallet tiles -->
+      <!-- Wallets -->
       <div class="wallet-row">
-        <div class="wallet" id="rechargeWalletBox">
+        <div class="wallet">
           <h4>Recharge wallet</h4>
           <div class="amount" id="mainWallet">UGX 0</div>
         </div>
-        <div class="wallet" id="commissionWalletBox">
+        <div class="wallet">
           <h4>Commission wallet</h4>
           <div class="amount" id="commWallet">UGX 0</div>
         </div>
       </div>
 
-      <!-- Buttons row (separate from tiles) -->
+      <!-- Actions -->
       <div class="wallet-actions">
         <button class="btn" id="rechargeBtn">⟳ Recharge</button>
         <button class="btn secondary" id="withdrawBtn">⬇ Withdraw</button>
@@ -151,14 +135,13 @@
       </div>
     </section>
 
-    <!-- Round action buttons -->
+    <!-- Quick actions -->
     <section class="grid-small" aria-label="Account actions">
       <a class="btn-mini" href="task-record.html"><div class="ico">📝</div><span>task record</span></a>
       <a class="btn-mini" href="team-report.html"><div class="ico">📋</div><span>team report</span></a>
       <a class="btn-mini" href="daily-report.html"><div class="ico">🗞️</div><span>daily report</span></a>
-
       <a class="btn-mini" href="bill-record.html"><div class="ico">🧾</div><span>bill record</span></a>
-      <a class="btn-mini" href="position-salary.html"><div class="ico">🧪</div><span>Position Salary</span></a>
+      <a class="btn-mini" href="position-salary.html"><div class="ico">🎖️</div><span>position salary</span></a>
       <a class="btn-mini" href="app-download.html"><div class="ico">⬇️</div><span>APP download</span></a>
     </section>
   </main>
@@ -209,22 +192,19 @@
       }
     }
 
-    function computeLevelAndStatus(data){
-      // Prefer highest joined/under_review among B9..B1
-      let level = "Intern";
-      let status = "—";
+    // Determine level from users collection (B9→B1 highest present). Fallback to Intern.
+    // Status prefers root "status" if present; otherwise the level's status; otherwise "—".
+    function computeLevelAndStatus(data = {}) {
       const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
-      for (const code of order){
-        const entry = data?.[code];
-        if (entry && (entry.status === "joined" || entry.status === "under_review")){
-          level = code;
-          status = entry.status.replace("_"," ");
-          break;
-        }
+      let level = "Intern";
+      let levelStatus = null;
+
+      for (const code of order) {
+        if (data[code]) { level = code; levelStatus = data[code]?.status || null; break; }
       }
-      // Fallback to legacy flat fields if present
-      if (data?.level) level = data.level;
-      if (data?.levelStatus) status = String(data.levelStatus).replace("_"," ");
+
+      const rootStatus = data.status ? String(data.status).replace("_"," ") : null;
+      const status = rootStatus || (levelStatus ? String(levelStatus).replace("_"," ") : "—");
       return { level, status };
     }
 
@@ -236,7 +216,6 @@
       $("displayName").textContent = d.name || (auth.currentUser?.displayName || "BAM Member");
       $("avatar").textContent = (d.name || "B M").split(" ").map(s=>s[0]||"").slice(0,2).join("").toUpperCase() || "B";
 
-      // NEW: show level + status at the top
       const { level, status } = computeLevelAndStatus(d);
       $("levelBadge").textContent  = `Level: ${level}`;
       $("statusBadge").textContent = `Status: ${status}`;
