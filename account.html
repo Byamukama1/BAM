@@ -131,7 +131,7 @@
         <div class="stat"><small>total income</small><b id="totalIncome">UGX 0</b></div>
         <div class="stat"><small>this week's income</small><b id="weekIncome">UGX 0</b></div>
         <div class="stat"><small>this month's income</small><b id="monthIncome">UGX 0</b></div>
-        <div class="stat"><small>Commission from subordinate tasks</small><b id="subCommission">UGX 0</b></div>
+        <div class="stat"><small>Commission from inviting</small><b id="inviteCommission">UGX 0</b></div>
       </div>
     </section>
 
@@ -140,6 +140,7 @@
       <a class="btn-mini" href="task-record.html"><div class="ico">📝</div><span>task record</span></a>
       <a class="btn-mini" href="team-report.html"><div class="ico">📋</div><span>team report</span></a>
       <a class="btn-mini" href="daily-report.html"><div class="ico">🗞️</div><span>daily report</span></a>
+
       <a class="btn-mini" href="bill-record.html"><div class="ico">🧾</div><span>bill record</span></a>
       <a class="btn-mini" href="position-salary.html"><div class="ico">🎖️</div><span>position salary</span></a>
       <a class="btn-mini" href="app-download.html"><div class="ico">⬇️</div><span>APP download</span></a>
@@ -160,7 +161,10 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import {
+      getFirestore, doc, getDoc, setDoc,
+      collection, getDocs, query, where
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
@@ -180,6 +184,29 @@
     const $ = (id)=>document.getElementById(id);
     const fmt = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
 
+    /* ---------------- Dates ---------------- */
+    const pad = (n)=> (n<10 ? "0"+n : ""+n);
+    const toKey = (d)=> `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const today = new Date();
+    const todayKey = toKey(today);
+
+    // yesterday
+    const yest = new Date(today.getFullYear(), today.getMonth(), today.getDate()-1);
+    const yestKey = toKey(yest);
+
+    // last 7 full days including today
+    const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()-6);
+    const weekStartKey = toKey(weekStart);
+
+    // month range
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthStartKey = toKey(monthStart);
+
+    // helpers for referral timestamp windows
+    function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
+    function endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
+
+    /* ---------------- Wallet init ---------------- */
     async function ensureWalletFields(uid){
       const ref = doc(db,"users",uid);
       const snap = await getDoc(ref);
@@ -192,8 +219,7 @@
       }
     }
 
-    // Determine level from users collection (B9→B1 highest present). Fallback to Intern.
-    // Status prefers root "status" if present; otherwise the level's status; otherwise "—".
+    /* ---------------- Level & Status ---------------- */
     function computeLevelAndStatus(data = {}) {
       const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
       let level = "Intern";
@@ -202,12 +228,63 @@
       for (const code of order) {
         if (data[code]) { level = code; levelStatus = data[code]?.status || null; break; }
       }
-
       const rootStatus = data.status ? String(data.status).replace("_"," ") : null;
       const status = rootStatus || (levelStatus ? String(levelStatus).replace("_"," ") : "—");
       return { level, status };
     }
 
+    /* ---------------- Sums: tasks/{uid}/events ----------------
+       events fields used: amount (number), dateKey (YYYY-MM-DD)
+    -----------------------------------------------------------*/
+    async function sumTaskAmountBetween(uid, startKey, endKey){
+      // if startKey === endKey, you can pass same for both (inclusive)
+      const evCol = collection(db,"tasks",uid,"events");
+      const qy = query(evCol, where("dateKey", ">=", startKey), where("dateKey", "<=", endKey));
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=>{
+        const v = d.data();
+        total += Number(v.amount || 0);
+      });
+      return total;
+    }
+    async function sumTaskAmountAll(uid){
+      const evCol = collection(db,"tasks",uid,"events");
+      const snap = await getDocs(evCol);
+      let total = 0;
+      snap.forEach(d=> total += Number(d.data().amount || 0));
+      return total;
+    }
+
+    /* ---------------- Sums: referrals ----------------
+       referrals fields from verify.html: { toUid, createdAt, bonus }
+       We count bonuses where toUid == current user (the referrer).
+       “Verified referee” is already enforced by verify.html creating
+       the referral log at the time of verification.
+    ---------------------------------------------------*/
+    async function sumReferralBonusBetween(uid, startDate, endDate){
+      const refCol = collection(db,"referrals");
+      const qy = query(
+        refCol,
+        where("toUid","==", uid),
+        where("createdAt",">=", startDate),
+        where("createdAt","<=", endDate)
+      );
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=> total += Number(d.data().bonus || 0));
+      return total;
+    }
+    async function sumReferralBonusAll(uid){
+      const refCol = collection(db,"referrals");
+      const qy = query(refCol, where("toUid","==", uid));
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=> total += Number(d.data().bonus || 0));
+      return total;
+    }
+
+    /* ---------------- Load & Render ---------------- */
     async function loadUser(uid){
       const ref = doc(db,"users",uid);
       const snap = await getDoc(ref);
@@ -223,19 +300,40 @@
       $("mainWallet").textContent = fmt(d.mainWallet || 0);
       $("commWallet").textContent = fmt(d.commissionWallet || 0);
 
-      $("yesterdayIncome").textContent = fmt(d.yesterdayIncome || 0);
-      $("todayIncome").textContent = fmt(d.todayIncome || 0);
-      $("totalIncome").textContent = fmt(d.totalIncome || 0);
-      $("weekIncome").textContent = fmt(d.weekIncome || 0);
-      $("monthIncome").textContent = fmt(d.monthIncome || 0);
-      $("subCommission").textContent = fmt(d.subordinateCommission || 0);
+      // ---- Compute stats (tasks + referrals) ----
+      // TODAY
+      const todayTasks = await sumTaskAmountBetween(uid, todayKey, todayKey);
+      const todayRefs  = await sumReferralBonusBetween(uid, startOfDay(today), endOfDay(today));
+      $("todayIncome").textContent = fmt(todayTasks + todayRefs);
+
+      // YESTERDAY
+      const yestTasks = await sumTaskAmountBetween(uid, yestKey, yestKey);
+      const yestRefs  = await sumReferralBonusBetween(uid, startOfDay(yest), endOfDay(yest));
+      $("yesterdayIncome").textContent = fmt(yestTasks + yestRefs);
+
+      // THIS WEEK (last 7 days incl. today)
+      const weekTasks = await sumTaskAmountBetween(uid, weekStartKey, todayKey);
+      const weekRefs  = await sumReferralBonusBetween(uid, startOfDay(weekStart), endOfDay(today));
+      $("weekIncome").textContent = fmt(weekTasks + weekRefs);
+
+      // THIS MONTH
+      const monthTasks = await sumTaskAmountBetween(uid, monthStartKey, todayKey);
+      const monthRefs  = await sumReferralBonusBetween(uid, startOfDay(monthStart), endOfDay(today));
+      $("monthIncome").textContent = fmt(monthTasks + monthRefs);
+
+      // TOTAL (lifetime)
+      const totalTasks = await sumTaskAmountAll(uid);
+      const totalRefs  = await sumReferralBonusAll(uid);
+      $("totalIncome").textContent = fmt(totalTasks + totalRefs);
+
+      // Commission from inviting (lifetime referral bonus)
+      $("inviteCommission").textContent = fmt(totalRefs);
     }
 
     async function handleRecharge(uid){
       await ensureWalletFields(uid);
       location.href = "recharge.html";
     }
-
     async function handleWithdraw(uid){
       await ensureWalletFields(uid);
       location.href = "withdraw.html";
