@@ -110,10 +110,10 @@
 
     let currentUser=null, userData=null, chosen=null;
 
-    // ---- pick current (highest verified; else INTERN) ----
+    // ---- level rank helpers (for demotion checks) ----
+    const levelIndex = id => LEVELS.findIndex(l => l.id === id); // B1=0 ... B9=8
     function getCurrentLevelId() {
-      // From highest to lowest in our list order B1..B9? We want highest verified.
-      // We'll scan descending by index end->start to treat B9 as highest.
+      // highest verified wins
       for (let i=LEVELS.length-1; i>=0; i--){
         const id = LEVELS[i].id;
         if (userData && userData[id] && userData[id].status === 'verified') return id;
@@ -151,9 +151,9 @@
         const status = userData?.[lv.id]?.status;
         const verified = status==='verified';
         const under = status==='under_review';
-        const member = status==='joined' || verified; // treat verified as current
+        const member = status==='joined' || verified;
 
-        const isCurrent = (currentId === lv.id); // if verified, this will be true
+        const isCurrent = (currentId === lv.id);
 
         const card = document.createElement('section');
         card.className='level-card';
@@ -194,6 +194,17 @@
       const id = e.currentTarget.getAttribute('data-level');
       chosen = LEVELS.find(x=>x.id===id);
       if (!currentUser){ toast('Please log in first', true); return; }
+
+      // --- NEW: block demotion (joining below current verified) ---
+      const currentId = getCurrentLevelId();
+      if (currentId !== 'INTERN') {
+        if (levelIndex(chosen.id) < levelIndex(currentId)) {
+          toast(`You cannot join a lower level than your current verified level (${currentId}).`, true);
+          return;
+        }
+      }
+      // -------------------------------------------------------------
+
       const need = chosen.deposit;
       if ((userData?.mainWallet||0) < need){ toast('Insufficient balance', true); return; }
       modalMsg.textContent = `Join ${chosen.name} for ${UGX(need)}. This will be deducted from your main wallet.`;
