@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Invite</title>
+  <style>
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --bg:#fff7f7; --card:#ffffff; --ink:#0f172a; --muted:#6b7280;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--ink)}
+    header{
+      background:linear-gradient(135deg,var(--brand),var(--brand-d));
+      color:#fff;padding:12px 14px;font-weight:900;letter-spacing:.3px;text-align:center
+    }
+    .wrap{max-width:980px;margin:0 auto;padding:14px}
+    .card{
+      background:var(--card);border-radius:16px;
+      box-shadow:0 12px 26px rgba(0,0,0,.06);padding:16px;margin:12px 0
+    }
+    .center{display:grid;place-items:center;text-align:center}
+    .linkbox{
+      width:100%;max-width:760px;display:flex;gap:10px;align-items:center
+    }
+    .input{
+      flex:1;border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px;font-weight:700;
+      background:#fff
+    }
+    .btn{
+      appearance:none;border:none;border-radius:12px;padding:12px 14px;font-weight:900;cursor:pointer;
+      background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;white-space:nowrap
+    }
+    .muted{color:var(--muted);font-size:12px}
+    .title{
+      font-weight:900;font-size:18px;margin-bottom:8px;color:var(--brand-d);text-transform:uppercase;letter-spacing:.6px
+    }
+
+    /* tables */
+    .table-wrap{overflow-x:auto;border:2px solid var(--brand);border-radius:12px}
+    table{width:100%;border-collapse:collapse}
+    thead th{
+      background:linear-gradient(180deg,var(--brand-d),var(--brand));
+      color:#fff;font-size:12px;padding:8px;border-right:1px solid #7c1111
+    }
+    thead th:last-child{border-right:none}
+    tbody td{font-size:12px;padding:8px;border-top:1px solid #f3d2d2;border-right:1px solid #f3d2d2}
+    tbody td:last-child{border-right:none}
+    tbody tr:nth-child(odd){background:#fff5f5}
+    tbody tr:nth-child(even){background:#fde8e8}
+    .c{text-align:center}
+    .r{text-align:right}
+    .lvl{font-weight:900;color:var(--brand-d)}
+
+    /* tiny helper pill */
+    .pill{display:inline-block;background:#fff6e0;border:1px solid #f3cf69;border-radius:999px;padding:4px 10px;font-weight:800}
+  </style>
+</head>
+<body>
+  <header> Invite Friends</header>
+
+  <main class="wrap">
+    <!-- Invite link (centered) -->
+    <section class="card center">
+      <div class="title">Your personal invite link</div>
+      <div class="linkbox">
+        <input id="inviteLink" class="input" readonly value="Generating…" />
+        <button id="copyBtn" class="btn">Copy</button>
+      </div>
+      
+      <div class="muted" style="margin-top:4px">
+        Your code: <b id="codeView">—</b>
+      </div>
+    </section>
+
+    <!-- Referral rates table -->
+    <section class="card">
+      <div class="title">Referral bonus</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="c">Level</th>
+              <th class="c">Bonus</th>
+              <th class="c">When it applies</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="c lvl">A</td><td class="c">10%</td><td class="c">Your direct invite gets verified</td></tr>
+            <tr><td class="c lvl">B</td><td class="c">3%</td><td class="c">Your invite’s invite gets verified</td></tr>
+            <tr><td class="c lvl">C</td><td class="c">2%</td><td class="c">Third tier gets verified</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        Bonus is a percentage of the verified member’s level deposit (same logic used in verification payouts).
+      </div>
+    </section>
+
+    <!-- Commission by level -->
+    <section class="card">
+      <div class="title">Commission amounts by level</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="c">Level</th>
+              <th class="r">Deposit (UGX)</th>
+              <th class="r">10% of level</th>
+              <th class="r">3% of level</th>
+              <th class="r">2% of level</th>
+            </tr>
+          </thead>
+          <tbody id="levelRows">
+            <!-- filled by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const UGX = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
+
+    // Deposit ladder per level (used for commission table)
+    const LEVEL_DEPOSITS = {
+      B1:  80000,
+      B2:  229000,
+      B3:  625000,
+      B4:  1940000,
+      B5:  5210000,
+      B6:  14000000,
+      B7:  30000000,
+      B8:  60000000,
+      B9:  99000000,
+    };
+
+    function pct(n, p){ return Math.floor(Number(n||0) * p); }
+
+    function renderLevelTable(){
+      const body = $("levelRows");
+      body.innerHTML = "";
+      Object.entries(LEVEL_DEPOSITS).forEach(([lvl, dep])=>{
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="c lvl">${lvl}</td>
+          <td class="r">${UGX(dep)}</td>
+          <td class="r">${UGX(pct(dep, 0.10))}</td>
+          <td class="r">${UGX(pct(dep, 0.03))}</td>
+          <td class="r">${UGX(pct(dep, 0.02))}</td>
+        `;
+        body.appendChild(tr);
+      });
+    }
+
+    // Ensure user has an inviteCode; if not, create and save it.
+    async function ensureInviteCode(uid){
+      const uref = doc(db,"users",uid);
+      const snap = await getDoc(uref);
+      const data = snap.exists() ? snap.data() : {};
+      let code = data.inviteCode;
+      if (!code){
+        // short, readable code from uid
+        code = ("BAM-" + uid.slice(0,6)).toUpperCase();
+        await setDoc(uref, { inviteCode: code }, { merge:true });
+      }
+      return code;
+    }
+
+    function buildInviteLink(code){
+      // current domain + register + inviteCode param
+      const base = location.origin.replace(/\/+$/,"");
+      return `${base}/register.html?inviteCode=${encodeURIComponent(code)}`;
+    }
+
+    function wireCopy(){
+      $("copyBtn").addEventListener("click", async ()=>{
+        const val = $("inviteLink").value;
+        try{
+          await navigator.clipboard.writeText(val);
+          const old = $("copyBtn").textContent;
+          $("copyBtn").textContent = "Copied!";
+          setTimeout(()=>{ $("copyBtn").textContent = old; }, 1200);
+        }catch{
+          $("inviteLink").select(); document.execCommand("copy");
+        }
+      });
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){ location.href="login.html"; return; }
+
+      // Prepare link
+      const code = await ensureInviteCode(user.uid);
+      const link = buildInviteLink(code);
+      $("inviteLink").value = link;
+      $("codeView").textContent = code;
+
+      wireCopy();
+      renderLevelTable();
+    });
+  </script>
+</body>
+</html>
