@@ -96,7 +96,6 @@
     const toast = (msg, err=false)=>{ const n=document.getElementById('note'); n.textContent=msg; n.classList.toggle('err',err); n.style.display='block'; setTimeout(()=>n.style.display='none',2800); };
 
     // ===== Levels (B1..B9) — deposit already includes +10,000 =====
-    // These numbers match the "Required to join" amounts.
     const LEVELS = [
       { id:'B1', name:'B1', deposit:   80000, each:  330, daily:  7,  grad:['#0ea5e9','#2563eb'] },
       { id:'B2', name:'B2', deposit:  229000, each:  430, daily: 17,  grad:['#7c3aed','#4f46e5'] },
@@ -111,12 +110,26 @@
 
     let currentUser=null, userData=null, chosen=null;
 
+    // ---- pick current (highest verified; else INTERN) ----
+    function getCurrentLevelId() {
+      // From highest to lowest in our list order B1..B9? We want highest verified.
+      // We'll scan descending by index end->start to treat B9 as highest.
+      for (let i=LEVELS.length-1; i>=0; i--){
+        const id = LEVELS[i].id;
+        if (userData && userData[id] && userData[id].status === 'verified') return id;
+      }
+      return 'INTERN';
+    }
+
     // ===== Render =====
     function renderLevels(){
       const wrap = document.getElementById('levels-container');
       wrap.innerHTML = '';
 
-      // Intern (non-joinable)
+      const currentId = getCurrentLevelId();
+
+      // Intern card: mark current only if no verified level
+      const internIsCurrent = (currentId === 'INTERN');
       const intern = document.createElement('section');
       intern.className='level-card';
       intern.innerHTML = `
@@ -128,15 +141,20 @@
           <div class="bar">
             <span class="chip">Each Task: ${UGX(300)}</span>
             <span class="chip">Daily tasks: 5</span>
-            <button class="join-btn" disabled>Current</button>
+            <button class="join-btn" disabled>${internIsCurrent ? 'Current' : '—'}</button>
           </div>
+          ${internIsCurrent ? '<div class="status member">Status: current</div>' : ''}
         </div>`;
       wrap.appendChild(intern);
 
       LEVELS.forEach(lv=>{
         const status = userData?.[lv.id]?.status;
+        const verified = status==='verified';
         const under = status==='under_review';
-        const member = status==='joined';
+        const member = status==='joined' || verified; // treat verified as current
+
+        const isCurrent = (currentId === lv.id); // if verified, this will be true
+
         const card = document.createElement('section');
         card.className='level-card';
         card.innerHTML = `
@@ -149,14 +167,14 @@
               <span class="chip">Each Task: ${UGX(lv.each)}</span>
               <span class="chip">Daily tasks: ${lv.daily}</span>
               <button class="join-btn" data-level="${lv.id}" ${under||member?'disabled':''}>
-                ${under?'Under review': member?'Already Joined':'Join now'}
+                ${isCurrent ? 'Current' : under ? 'Under review' : member ? 'Already Joined' : 'Join now'}
               </button>
             </div>
             <div style="margin-top:8px;color:${under?'#92400e':'#64748b'};font-size:13px">
               Required to join: <b>${UGX(lv.deposit)}</b>
             </div>
             ${under?'<div class="status under">Status: under review</div>':''}
-            ${member?'<div class="status member">Status: member</div>':''}
+            ${isCurrent?'<div class="status member">Status: current</div>': member?'<div class="status member">Status: member</div>':''}
           </div>`;
         wrap.appendChild(card);
       });
@@ -176,7 +194,7 @@
       const id = e.currentTarget.getAttribute('data-level');
       chosen = LEVELS.find(x=>x.id===id);
       if (!currentUser){ toast('Please log in first', true); return; }
-      const need = chosen.deposit; // already includes +10,000
+      const need = chosen.deposit;
       if ((userData?.mainWallet||0) < need){ toast('Insufficient balance', true); return; }
       modalMsg.textContent = `Join ${chosen.name} for ${UGX(need)}. This will be deducted from your main wallet.`;
       modal.style.display='flex';
@@ -195,7 +213,7 @@
           const u = snap.data();
           const need = chosen.deposit;
 
-          if (u[chosen.id]?.status === 'under_review' || u[chosen.id]?.status === 'joined'){
+          if (u[chosen.id]?.status === 'under_review' || u[chosen.id]?.status === 'joined' || u[chosen.id]?.status === 'verified'){
             throw new Error(`You already have ${chosen.id} in progress or joined.`);
           }
           if ((u.mainWallet||0) < need){
@@ -212,7 +230,7 @@
           });
         });
         show(`Request submitted for ${chosen.name}. ${UGX(chosen.deposit)} deducted from main wallet.`, true);
-        await loadUser(); // refresh
+        await loadUser();
       }catch(err){
         console.error(err);
         show(err.message || 'Failed to join level');
