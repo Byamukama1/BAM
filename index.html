@@ -57,7 +57,7 @@
     .rail{
       display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;
       scrollbar-width:none;-ms-overflow-style:none;
-      scroll-behavior:smooth; /* needed for smooth auto-slide */
+      scroll-behavior:smooth;
     }
     .rail::-webkit-scrollbar{display:none}
     .slide{min-width:100%;max-width:100%;scroll-snap-align:start;position:relative;height:210px;background:#ead5d3;flex:0 0 auto}
@@ -186,7 +186,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
     import {
-      getFirestore, collection, query, orderBy, limit, getDocs
+      getFirestore, collection, query, orderBy, limit, getDocs, where
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -259,12 +259,11 @@
     // Auto slideshow for the horizontal rail
     function startSliderAuto(rail, interval=2000){
       const slides = Array.from(rail.children);
-      if (slides.length <= 1) return; // nothing to slide
+      if (slides.length <= 1) return;
 
       let idx = 0;
       let paused = false;
 
-      // Helpers to get width on resize
       const getWidth = () => rail.clientWidth;
       const goTo = (i) => {
         idx = i % slides.length;
@@ -277,41 +276,67 @@
       const resumeSoon = () => { paused = false; };
       const resetTimer = () => { clearInterval(timer); timer = setInterval(()=>{ if(!paused) goTo(idx+1); }, interval); };
 
-      // Pause/resume on user interaction
       ["pointerdown","mouseenter","touchstart"].forEach(evt => rail.addEventListener(evt, pause, {passive:true}));
       ["pointerup","mouseleave","touchend","touchcancel"].forEach(evt => rail.addEventListener(evt, ()=>setTimeout(resumeSoon, 1500), {passive:true}));
 
-      // Keep index aligned when the user scrolls manually (snap end)
       rail.addEventListener("scroll", ()=>{
-        // debounce update
         clearTimeout(rail._snapTimer);
         rail._snapTimer = setTimeout(()=>{
           idx = Math.round(rail.scrollLeft / getWidth());
         }, 150);
       });
 
-      // Handle resize
       window.addEventListener("resize", resetTimer);
     }
 
-    // ---- Wallet Activity (sorted by amount) ----
+    // ---- Wallet Activity: deposits(successful) + withdraws(paid) ----
     async function loadActivity(){
       const box = $("activityList");
       box.innerHTML = "";
       try{
-        const [reSnap, wdSnap] = await Promise.all([
-          getDocs(query(collection(db,"recharges"),   orderBy("createdAt","desc"), limit(20))),
-          getDocs(query(collection(db,"withdrawals"), orderBy("createdAt","desc"), limit(20)))
+        const [depSnap, wdSnap] = await Promise.all([
+          getDocs(
+            query(
+              collection(db,"deposits"),
+              where("status","==","successful"),
+              orderBy("createdAt","desc"),
+              limit(30)
+            )
+          ),
+          getDocs(
+            query(
+              collection(db,"withdraws"),
+              where("status","==","paid"),
+              orderBy("createdAt","desc"),
+              limit(30)
+            )
+          )
         ]);
 
         const rows = [];
-        reSnap.forEach(d=>{
+
+        depSnap.forEach(d=>{
           const r = d.data();
-          rows.push({type:"Recharge", phone:maskPhone(r.phone), amount:parseAmount(r.amount), amountStr:formatUGX(r.amount), at:tsToMs(r.createdAt)});
+          rows.push({
+            type:"Deposit",
+            phone:maskPhone(r.phone),
+            amount:parseAmount(r.amount),
+            amountStr:formatUGX(r.amount),
+            at:tsToMs(r.createdAt || r.creditedAt),
+            text:`🎉 Congratulations! Recharged ${formatUGX(r.amount)}`
+          });
         });
+
         wdSnap.forEach(d=>{
           const r = d.data();
-          rows.push({type:"Withdraw", phone:maskPhone(r.phone), amount:parseAmount(r.amount), amountStr:formatUGX(r.amount), at:tsToMs(r.createdAt)});
+          rows.push({
+            type:"Withdraw",
+            phone:maskPhone(r.methodPhone || r.phone || ""),
+            amount:parseAmount(r.amount),
+            amountStr:formatUGX(r.amount),
+            at:tsToMs(r.createdAt || r.paidAt),
+            text:`💸 Withdrawal ${formatUGX(r.amount)} — Paid`
+          });
         });
 
         if (!rows.length){ renderEmpty(box,"No wallet activity yet."); return; }
@@ -324,7 +349,7 @@
             div.className = "item";
             div.innerHTML = `
               <div>
-                <div class="amount">🎉 ${r.type} ${r.amountStr}</div>
+                <div class="amount">${r.text}</div>
                 <div class="meta"><span class="type">${r.type}</span><span class="muted">${new Date(r.at).toLocaleString()}</span></div>
               </div>
               <div class="type">${r.phone}</div>
@@ -347,7 +372,6 @@
       const list = container.querySelector(".list");
       if (!list) return;
 
-      // Duplicate content for seamless loop
       const clone = list.cloneNode(true);
       container.appendChild(clone);
 
@@ -362,7 +386,6 @@
 
     // ---- Init + Loader hide ----
     await Promise.all([loadAnnouncements(), loadActivity()]);
-    // Small grace so the user sees the welcome briefly
     setTimeout(()=>{ loader.style.display = "none"; loader.setAttribute("aria-busy","false"); }, 600);
   </script>
 </body>
