@@ -53,6 +53,16 @@
           padding:10px 8px;font-weight:900;font-size:13px}
     .chip.primary{background:#7c1111;color:#fff;border-color:#7c1111}
     .chip[disabled]{opacity:.55;cursor:not-allowed}
+
+    /* Reference table (very small) */
+    .ref small{font-size:11px}
+    .ref table{font-size:11px}
+    .ref th,.ref td{padding:6px}
+    /* Column widths sized to content */
+    .c-amt{width:34%}
+    .c-rate{width:16%}
+    .c-days{width:16%}
+    .c-total{width:34%}
   </style>
 </head>
 <body>
@@ -67,6 +77,38 @@
       <div class="pill">Commission Wallet: <span id="comW">UGX 0</span></div>
       <div class="pill">Verified Level: <span id="levelLbl">—</span></div>
     </div>
+
+    <!-- NEW: Reference table -->
+    <section class="card ref">
+      <h2 style="margin:0 0 6px;font-size:15px">Reference</h2>
+      <div class="table-wrap">
+        <table aria-label="Reference totals">
+          <thead>
+            <tr>
+              <th class="c-amt">Amount</th>
+              <th class="c-rate">Daily %</th>
+              <th class="c-days">Days</th>
+              <th class="c-total">Total harvest</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Free fund (3% for 2 days) -->
+            <tr>
+              <td>UGX 12,000 (Free)</td>
+              <td>3%</td>
+              <td>2</td>
+              <td><strong>UGX 12,720</strong></td>
+            </tr>
+            <!-- Paid funds (2% for 10 days) -->
+            <tr><td>UGX 229,000</td><td>2%</td><td>10</td><td><strong>UGX 274,800</strong></td></tr>
+            <tr><td>UGX 625,000</td><td>2%</td><td>10</td><td><strong>UGX 750,000</strong></td></tr>
+            <tr><td>UGX 1,940,000</td><td>2%</td><td>10</td><td><strong>UGX 2,328,000</strong></td></tr>
+            <tr><td>UGX 5,210,000</td><td>2%</td><td>10</td><td><strong>UGX 6,252,000</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <small class="muted">Totals include principal + profit.</small>
+    </section>
 
     <!-- Info table (NOTES column removed) -->
     <section class="card">
