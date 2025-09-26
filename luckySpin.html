@@ -27,13 +27,12 @@
     .ok{background:var(--okbg);border:1px solid #a7f3d0;color:var(--ok)}
     .warn{background:var(--warnbg);border:1px solid #f6caca;color:var(--warn)}
 
-    /* Wheel */
     .stage{display:grid;place-items:center;margin:8px 0 12px}
     .wheel-wrap{position:relative;width:320px;height:320px}
     .wheel{
       width:100%;height:100%;border-radius:50%;
       border:10px solid #fff;box-shadow:0 8px 24px rgba(0,0,0,.1);
-      transition:transform 1.6s cubic-bezier(.2,.9,.2,1); /* speedy spin */
+      transition:transform 1.6s cubic-bezier(.2,.9,.2,1);
       background:
         conic-gradient(
           var(--c1) 0 60deg,
@@ -56,7 +55,6 @@
     .l5{transform:rotate(150deg) translate(0,-140px)}
     .l6{transform:rotate(210deg) translate(0,-140px)}
 
-    /* Pointer */
     .pointer{
       position:absolute;left:50%;top:50%;
       transform:translate(-50%,-50%);
@@ -77,21 +75,27 @@
     .btn.gold{background:var(--gold);color:#111}
     .btn[disabled]{opacity:.55;cursor:not-allowed}
     .tiny{font-size:12px;color:var(--muted)}
+
+    /* Winners ticker */
+    .winners{margin-top:14px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;overflow:hidden}
+    .winners h3{margin:8px 10px 0;font-size:14px;color:#7c1111}
+    .ticker-viewport{height:150px;overflow:hidden;position:relative}
+    .ticker-list{position:absolute;left:0;right:0;bottom:-100%;display:flex;flex-direction:column;gap:6px;padding:8px 10px}
+    .winrow{display:flex;justify-content:space-between;font-weight:800}
+    .amt{color:#065f46}
+    .ph{color:#6b7280}
   </style>
 </head>
 <body>
-  <header>BAM • Lucky Spin</header>
+  <header>BAM Lucky Spin</header>
 
   <main class="wrap">
     <div id="status" class="status"></div>
 
-    <!-- The wheel -->
     <section class="stage">
       <div class="wheel-wrap">
         <div id="wheel" class="wheel"></div>
         <div class="pointer" id="spinCenter">Spin</div>
-
-        <!-- blank labels (no figures shown) -->
         <div id="l1" class="slice-label l1"></div>
         <div id="l2" class="slice-label l2"></div>
         <div id="l3" class="slice-label l3"></div>
@@ -101,7 +105,6 @@
       </div>
     </section>
 
-    <!-- Password + buttons in the same row -->
     <section>
       <div class="row" style="margin-bottom:10px">
         <input id="pwd" class="input" placeholder="Enter spin password (from WhatsApp group)" />
@@ -110,234 +113,324 @@
       </div>
       <div class="tiny">Both spins require a valid password. Heavy spin only works for referrers who have an eligible verified direct referee (not yet used).</div>
     </section>
+
+    <section class="winners">
+      <h3>Recent Winners</h3>
+      <div class="ticker-viewport">
+        <div id="ticker" class="ticker-list"></div>
+      </div>
+    </section>
   </main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import {
-      getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs,
-      query, where, limit, runTransaction, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, setDoc, collection, getDocs,
+    query, where, limit, runTransaction, serverTimestamp,
+    onSnapshot, orderBy
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* -------------- Firebase -------------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
-      authDomain: "bam1-3d3e5.firebaseapp.com",
-      projectId: "bam1-3d3e5",
-      storageBucket: "bam1-3d3e5.firebasestorage.app",
-      messagingSenderId: "649603741902",
-      appId: "1:649603741902:web:e67f20363f485c0948789f",
-      measurementId: "G-W2DY026FXB"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+    authDomain: "bam1-3d3e5.firebaseapp.com",
+    projectId: "bam1-3d3e5",
+    storageBucket: "bam1-3d3e5.firebasestorage.app",
+    messagingSenderId: "649603741902",
+    appId: "1:649603741902:web:e67f20363f485c0948789f",
+    measurementId: "G-W2DY026FXB"
+  };
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-    /* -------------- Helpers -------------- */
-    const $ = id => document.getElementById(id);
-    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
-    const show = (html, ok=false)=>{ $("status").innerHTML = `<div class="banner ${ok?'ok':'warn'}">${html}</div>`; };
+  const $ = id => document.getElementById(id);
+  const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
+  const show = (html, ok=false)=>{ $("status").innerHTML = `<div class="banner ${ok?'ok':'warn'}">${html}</div>`; };
 
-    const wheel = $("wheel");
-    let spinLock = false;      // block double spins
-    let me=null;
+  const wheel = $("wheel");
+  let spinLock = false;
+  let me = null;
+  let meDoc = null;
 
-    const HEAVY_BY_LEVEL = {
-      B1:[5000,6000,7000],
-      B2:[15000,20000,30000],
-      B3:[20000,30000,50000],
-      B4:[30000,40000,60000],
-      B5:[100000], B6:[100000], B7:[100000], B8:[100000], B9:[100000]
-    };
-    const GROUP_AMOUNTS=[200,300,400,500];
+  const HEAVY_BY_LEVEL = {
+    B1:[5000,6000,7000],
+    B2:[15000,20000,30000],
+    B3:[20000,30000,50000],
+    B4:[30000,40000,60000],
+    B5:[100000], B6:[100000], B7:[100000], B8:[100000], B9:[100000]
+  };
+  const GROUP_AMOUNTS=[200,300,400,500];
 
-    function spinToIndex(idx, onDone){
-      // Each slice is 60deg. Land at chosen index (pointer at 12 o'clock).
-      const baseTurns = 8 + Math.floor(Math.random()*3); // fast but satisfying (8–10 turns)
-      const sliceDeg = 60;
-      const targetDeg = (360 - (idx*sliceDeg + sliceDeg/2)) % 360;
-      const final = baseTurns*360 + targetDeg;
-      wheel.style.transform = `rotate(${final}deg)`;
-      setTimeout(()=> onDone && onDone(), 1700); // matches CSS 1.6s
-    }
+  function spinToIndex(idx, onDone){
+    const baseTurns = 8 + Math.floor(Math.random()*3);
+    const sliceDeg = 60;
+    const targetDeg = (360 - (idx*sliceDeg + sliceDeg/2)) % 360;
+    const final = baseTurns*360 + targetDeg;
+    wheel.style.transform = `rotate(${final}deg)`;
+    setTimeout(()=> onDone && onDone(), 1700);
+  }
 
-    function findVerifiedLevel(u){
-      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
-      for(const code of order){ if (u?.[code]?.status==="verified") return code; }
-      return null;
-    }
+  function findVerifiedLevel(u){
+    const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+    for(const code of order){ if (u?.[code]?.status==="verified") return code; }
+    return null;
+  }
 
-    /* ---------- Password helpers ---------- */
-    async function requirePassword(type){ // type: 'group' | 'heavy'
-      const code = $("pwd").value.trim();
-      if (!code){ show("Enter the password first.", false); return {ok:false}; }
-      const qy = query(collection(db,'spinpassword'),
-        where('code','==', code), where('active','==', true), where('type','==', type), limit(1)
-      );
-      const snap = await getDocs(qy);
-      if (snap.empty){ show("Invalid or inactive password for this spin type.", false); return {ok:false}; }
-      return { ok:true, id:snap.docs[0].id, data:snap.docs[0].data(), code };
-    }
+  async function loadMeDoc(){
+    const uref = doc(db,'users', me.uid);
+    const s = await getDoc(uref);
+    meDoc = s.exists()? s.data() : {};
+  }
 
-    /* ---------- Heavy spin eligibility ---------- */
-    async function getEligibleReferee(){
-      // Referees with refA_uid == me.uid and verified; not yet used in heavy spins
-      const qs = query(collection(db,'users'), where('refA_uid','==', me.uid));
-      const snap = await getDocs(qs);
-      const candidates = [];
-      snap.forEach(d=>{
-        const u = d.data();
-        const lvl = findVerifiedLevel(u);
-        if (lvl) candidates.push({ uid:u.uid || d.id, level:lvl });
-      });
-      if (!candidates.length) return null;
-
-      // already used
-      const usedSnap = await getDocs(query(collection(db,'spins'),
-        where('uid','==', me.uid), where('type','==','heavy')
-      ));
-      const used = new Set();
-      usedSnap.forEach(d=>{ const v=d.data(); if(v.refereeUid) used.add(v.refereeUid); });
-
-      const available = candidates.filter(c=> !used.has(c.uid));
-      if (!available.length) return null;
-      return available[Math.floor(Math.random()*available.length)];
-    }
-
-    async function getLastByLevel(){
-      const mref = doc(db,'lucky_meta', me.uid);
-      const s = await getDoc(mref);
-      return s.exists()? (s.data().lastByLevel || {}) : {};
-    }
-    async function setLastByLevel(level, amount){
-      const mref = doc(db,'lucky_meta', me.uid);
-      await setDoc(mref, { lastByLevel: { [level]: amount } }, { merge:true });
-    }
-    function pickRandomDifferent(list, last){
-      if (list.length===1) return list[0];
-      let candidate = list[Math.floor(Math.random()*list.length)];
-      if (candidate===last){
-        const alts = list.filter(x=>x!==last);
-        candidate = alts[Math.floor(Math.random()*alts.length)];
-      }
-      return candidate;
-    }
-
-    /* ---------- Spin flows ---------- */
-    async function doHeavySpin(){
-      if (spinLock) return;
-      spinLock = true; $("btnHeavy").disabled = true; $("btnGroup").disabled = true;
-
-      try{
-        // password check for HEAVY
-        const pass = await requirePassword('heavy');
-        if (!pass.ok) return;
-
-        const ref = await getEligibleReferee();
-        if (!ref){ show("No eligible heavy spin. You must have a verified direct referee not yet used.", false); return; }
-
-        const options = HEAVY_BY_LEVEL[ref.level] || [100000];
-        // choose payout (wheel shows no figures)
-        const lastMap = await getLastByLevel();
-        const chosen = pickRandomDifferent(options, lastMap[ref.level]);
-        const targetIndex = Math.floor(Math.random()*6); // any slice visually
-
-        spinToIndex(targetIndex, async ()=>{
-          try{
-            await runTransaction(db, async (tx)=>{
-              const uref = doc(db,'users', me.uid);
-              const us = await tx.get(uref);
-              const u = us.exists()? u.data(): {};
-              const newCom = Number(u.commissionWallet||0) + Number(chosen);
-              tx.set(uref, { commissionWallet:newCom }, { merge:true });
-
-              const sref = doc(collection(db,'spins'));
-              tx.set(sref, {
-                uid: me.uid, type:'heavy', amount: chosen,
-                refereeUid: ref.uid, refereeLevel: ref.level,
-                passwordCode: pass.code,
-                createdAt: serverTimestamp(), indexLanded: targetIndex
-              });
-            });
-            await setLastByLevel(ref.level, chosen);
-            show(`Heavy spin added ${UGX(chosen)}.`, true);
-          }catch(e){
-            console.error(e); show(e.message || "Failed to save heavy spin.");
-          }finally{
-            $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false;
-          }
-        });
-      }catch(e){
-        console.error(e); show("Heavy spin failed.");
-        $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false;
+  async function requirePassword(type){
+    const code = $("pwd").value.trim();
+    if (!code){ show("Enter the password first.", false); return {ok:false}; }
+    const qy = query(collection(db,'spinpassword'), where('code','==', code), limit(10));
+    const snap = await getDocs(qy);
+    if (snap.empty){ show("Invalid or inactive password for this spin type.", false); return {ok:false}; }
+    let match = null;
+    for (const d of snap.docs){
+      const data = d.data();
+      if (String(data.type||'').toLowerCase() === type && data.active === true){
+        match = { id:d.id, data, code };
+        break;
       }
     }
+    if (!match){ show("Invalid or inactive password for this spin type.", false); return {ok:false}; }
+    return { ok:true, ...match };
+  }
 
-    async function doGroupSpin(){
-      if (spinLock) return;
-      spinLock = true; $("btnHeavy").disabled = true; $("btnGroup").disabled = true;
+  async function alreadyUsedPassword(passId){
+    const pref = doc(db,'spinpassword', passId);
+    const s = await getDoc(pref);
+    const usedBy = s.exists()? (s.data().usedBy || {}) : {};
+    return usedBy[me.uid] === true;
+  }
 
-      try{
-        // password check for GROUP + reserve up to 10 winners
-        const pass = await requirePassword('group');
-        if (!pass.ok) return;
-
-        let reserved = false;
-        await runTransaction(db, async (tx)=>{
-          const pref = doc(db,'spinpassword', pass.id);
-          const snap = await tx.get(pref);
-          if (!snap.exists()) throw new Error("Password not found.");
-          const cur = snap.data();
-          const used = Number(cur.usedCount||0);
-          const max  = Number(cur.maxWinners||10);
-          if (used >= max) throw new Error("This group spin is already full (10 winners).");
-          tx.update(pref, { usedCount: used + 1 });
-          reserved = true;
-        });
-        if (!reserved){ show("Could not reserve a group spin spot.", false); return; }
-
-        const chosen = GROUP_AMOUNTS[Math.floor(Math.random()*GROUP_AMOUNTS.length)];
-        const idx = Math.floor(Math.random()*6); // wheel visual only
-
-        spinToIndex(idx, async ()=>{
-          try{
-            await runTransaction(db, async (tx)=>{
-              const uref = doc(db,'users', me.uid);
-              const us = await tx.get(uref);
-              const u = us.exists()? u.data(): {};
-              const newCom = Number(u.commissionWallet||0) + Number(chosen);
-              tx.set(uref, { commissionWallet:newCom }, { merge:true });
-
-              const sref = doc(collection(db,'spins'));
-              tx.set(sref, {
-                uid: me.uid, type:'group', amount: chosen, passwordCode: pass.code,
-                createdAt: serverTimestamp(), indexLanded: idx
-              });
-            });
-            show(`Group spin added ${UGX(chosen)}.`, true);
-          }catch(e){
-            console.error(e); show(e.message || "Failed to save group spin.");
-          }finally{
-            $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false;
-          }
-        });
-      }catch(e){
-        console.error(e);
-        show(e.message || "Group spin failed.");
-        $("btnHeavy").disabled=false; $("btnGroup").disabled=false; spinLock=false;
-      }
-    }
-
-    /* ---------- Init ---------- */
-    onAuthStateChanged(auth, async (u)=>{
-      if (!u){ location.href="login.html"; return; }
-      me = u;
-      show("Enter the password and pick a spin.", true);
+  async function getEligibleReferee(){
+    const qs = query(collection(db,'users'), where('refA_uid','==', me.uid));
+    const snap = await getDocs(qs);
+    const candidates = [];
+    snap.forEach(d=>{
+      const u = d.data();
+      const lvl = findVerifiedLevel(u);
+      if (lvl) candidates.push({ uid:u.uid || d.id, level:lvl });
     });
+    if (!candidates.length) return null;
 
-    $("btnHeavy").addEventListener("click", doHeavySpin);
-    $("btnGroup").addEventListener("click", doGroupSpin);
-  </script>
+    const usedSnap = await getDocs(query(collection(db,'spins'),
+      where('uid','==', me.uid), where('type','==','heavy')
+    ));
+    const used = new Set();
+    usedSnap.forEach(d=>{ const v=d.data(); if(v.refereeUid) used.add(v.refereeUid); });
+    const available = candidates.filter(c=> !used.has(c.uid));
+    if (!available.length) return null;
+    return available[Math.floor(Math.random()*available.length)];
+  }
+
+  async function getLastByLevel(){
+    const mref = doc(db,'lucky_meta', me.uid);
+    const s = await getDoc(mref);
+    return s.exists()? (s.data().lastByLevel || {}) : {};
+  }
+  async function setLastByLevel(level, amount){
+    const mref = doc(db,'lucky_meta', me.uid);
+    await setDoc(mref, { lastByLevel: { [level]: amount } }, { merge:true });
+  }
+  function pickRandomDifferent(list, last){
+    if (list.length===1) return list[0];
+    let candidate = list[Math.floor(Math.random()*list.length)];
+    if (candidate===last){
+      const alts = list.filter(x=>x!==last);
+      candidate = alts[Math.floor(Math.random()*alts.length)];
+    }
+    return candidate;
+  }
+
+  async function doHeavySpin(){
+    if (spinLock) return;
+    if (!meDoc || !findVerifiedLevel(meDoc)){ show("You must be verified to spin.", false); return; }
+    spinLock = true; $("btnHeavy").disabled = true; $("btnGroup").disabled = true;
+    try{
+      const pass = await requirePassword('heavy');
+      if (!pass.ok) return;
+      if (await alreadyUsedPassword(pass.id)){ show("You have already used this password.", false); return; }
+
+      const ref = await getEligibleReferee();
+      if (!ref){ show("No eligible heavy spin. You must have a verified direct referee not yet used.", false); return; }
+
+      const options = HEAVY_BY_LEVEL[ref.level] || [100000];
+      const lastMap = await getLastByLevel();
+      const chosen = pickRandomDifferent(options, lastMap[ref.level]);
+      const targetIndex = Math.floor(Math.random()*6);
+
+      spinToIndex(targetIndex, async ()=>{
+        try{
+          await runTransaction(db, async (tx)=>{
+            const uref = doc(db,'users', me.uid);
+            const us = await tx.get(uref);
+            const udata = us.exists()? us.data(): {};
+            const newCom = Number(udata.commissionWallet||0) + Number(chosen);
+            tx.set(uref, { commissionWallet:newCom }, { merge:true });
+
+            const sref = doc(collection(db,'spins'));
+            tx.set(sref, {
+              uid: me.uid, type:'heavy', amount: chosen,
+              refereeUid: ref.uid, refereeLevel: ref.level,
+              passwordCode: pass.code,
+              createdAt: serverTimestamp(), indexLanded: targetIndex
+            });
+
+            const pref = doc(db,'spinpassword', pass.id);
+            const ps = await tx.get(pref);
+            const cur = ps.exists()? ps.data(): {};
+            const usedCount = Number(cur.usedCount||0);
+            if (cur.usedBy?.[me.uid] === true) throw new Error("You have already used this password.");
+            tx.set(pref, { usedBy: { ...(cur.usedBy||{}), [me.uid]: true }, usedCount: usedCount + 1 }, { merge:true });
+          });
+          await setLastByLevel(ref.level, chosen);
+          show(`Heavy spin added ${UGX(chosen)}.`, true);
+        }catch(e){ console.error(e); show(e.message || "Failed to save heavy spin."); }
+        finally{ $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false; }
+      });
+    }catch(e){ console.error(e); show("Heavy spin failed."); $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false; }
+  }
+
+  async function doGroupSpin(){
+    if (spinLock) return;
+    if (!meDoc || !findVerifiedLevel(meDoc)){ show("You must be verified to spin.", false); return; }
+    spinLock = true; $("btnHeavy").disabled = true; $("btnGroup").disabled = true;
+
+    try{
+      const pass = await requirePassword('group');
+      if (!pass.ok) return;
+
+      let reserved = false;
+      await runTransaction(db, async (tx)=>{
+        const pref = doc(db,'spinpassword', pass.id);
+        const snap = await tx.get(pref);
+        if (!snap.exists()) throw new Error("Password not found.");
+        const cur = snap.data();
+        if ((cur.usedBy||{})[me.uid] === true) throw new Error("You have already used this password.");
+        const used = Number(cur.usedCount||0);
+        const max  = Number(cur.maxWinners||10);
+        if (used >= max) throw new Error("This group spin is already full (10 winners).");
+        tx.update(pref, { usedCount: used + 1, [`usedBy.${me.uid}`]: true });
+        reserved = true;
+      });
+      if (!reserved){ show("Could not reserve a group spin spot.", false); return; }
+
+      const chosen = GROUP_AMOUNTS[Math.floor(Math.random()*GROUP_AMOUNTS.length)];
+      const idx = Math.floor(Math.random()*6);
+
+      spinToIndex(idx, async ()=>{
+        try{
+          await runTransaction(db, async (tx)=>{
+            const uref = doc(db,'users', me.uid);
+            const us = await tx.get(uref);
+            const udata = us.exists()? us.data(): {};
+            const newCom = Number(udata.commissionWallet||0) + Number(chosen);
+            tx.set(uref, { commissionWallet:newCom }, { merge:true });
+
+            const sref = doc(collection(db,'spins'));
+            tx.set(sref, {
+              uid: me.uid, type:'group', amount: chosen, passwordCode: pass.code,
+              createdAt: serverTimestamp(), indexLanded: idx
+            });
+          });
+          show(`Group spin added ${UGX(chosen)}.`, true);
+        }catch(e){ console.error(e); show(e.message || "Failed to save group spin."); }
+        finally{ $("btnHeavy").disabled = false; $("btnGroup").disabled = false; spinLock=false; }
+      });
+    }catch(e){ console.error(e);
+      show(e.message || "Group spin failed.");
+      $("btnHeavy").disabled=false; $("btnGroup").disabled=false; spinLock=false;
+    }
+  }
+
+  /* ------- Winners ticker: fast but readable ------- */
+  const userPhoneCache = new Map();
+  const maskPhone = (p)=>{
+    if (!p) return "********";
+    const s = String(p).replace(/\s+/g,'');
+    if (s.length <= 5) return "***" + s.slice(-2);
+    return s.slice(0,3) + "****" + s.slice(-2);
+  };
+  async function getPhone(uid){
+    if (!uid) return "";
+    if (userPhoneCache.has(uid)) return userPhoneCache.get(uid);
+    const uref = doc(db,'users', uid);
+    const snap = await getDoc(uref);
+    const phone = snap.exists()? (snap.data().phone || (snap.data().depositNumbers?.[0]?.phone) || "") : "";
+    userPhoneCache.set(uid, phone);
+    return phone;
+  }
+
+  function renderTickerRows(spins){
+    const items = spins.map(v=>{
+      const phone = maskPhone(v.phone || "");
+      return `<div class="winrow"><span class="ph">${phone}</span><span class="amt">+${UGX(v.amount||0)}</span></div>`;
+    });
+    const el = $("ticker");
+    el.innerHTML = items.join("") || `<div class="winrow"><span class="ph">No winners yet</span><span class="amt"></span></div>`;
+
+    // ---- High-speed but readable scroll ----
+    const SPEED_PX_PER_SEC = 130; // adjust if you want faster/slower
+    const distance = el.scrollHeight + 16; // pixels to travel
+    const duration = Math.max(3, distance / SPEED_PX_PER_SEC); // seconds
+
+    // reset & run
+    el.style.willChange = "transform";
+    el.style.transition = "none";
+    el.style.transform = "translateY(0)";
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        el.style.transition = `transform ${duration}s linear`;
+        el.style.transform = `translateY(-${distance}px)`;
+      });
+    });
+  }
+
+  async function buildRowsFromSnapshot(snap){
+    const docs = snap.docs || [];
+    const payloads = await Promise.all(docs.map(async d=>{
+      const v = d.data() || {};
+      const phone = await getPhone(v.uid || "");
+      return { amount: v.amount || 0, phone };
+    }));
+    renderTickerRows(payloads);
+  }
+
+  async function loadWinnersOnce(){
+    const qy = query(collection(db,'spins'), orderBy('createdAt','desc'), limit(30));
+    const snap = await getDocs(qy);
+    await buildRowsFromSnapshot(snap);
+  }
+
+  function startTicker(){
+    const qy = query(collection(db,'spins'), orderBy('createdAt','desc'), limit(30));
+    onSnapshot(qy, {
+      next: async (snap)=>{ try{ await buildRowsFromSnapshot(snap); }catch(e){ console.error(e); } },
+      error: async (err)=>{
+        console.warn("Realtime winners failed; falling back to one-time fetch.", err);
+        try{ await loadWinnersOnce(); }catch(e){ console.error("Fallback winners fetch failed", e); }
+      }
+    });
+  }
+
+  onAuthStateChanged(auth, async (u)=>{
+    if (!u){ location.href="login.html"; return; }
+    me = u;
+    const uref = doc(db,'users', me.uid);
+    const s = await getDoc(uref);
+    meDoc = s.exists()? s.data(): {};
+    show("Enter the password and pick a spin.", true);
+    startTicker();
+  });
+
+  $("btnHeavy").addEventListener("click", doHeavySpin);
+  $("btnGroup").addEventListener("click", doGroupSpin);
+</script>
 </body>
 </html>
