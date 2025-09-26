@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Funds</title>
+  <style>
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --ink:#161617; --muted:#6b7280; --ok:#065f46; --okbg:#ecfdf5;
+      --warn:#7c1111; --warnbg:#fff3f3;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    html,body{margin:0;height:100%}
+    body{
+      color:var(--ink);line-height:1.45;font-size:14px;   /* smaller overall */
+      background:
+        radial-gradient(120% 120% at -10% -10%, #fbeceb 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, #f6d8d5 0%, transparent 60%),
+        linear-gradient(180deg, #fff 0%, #fbeceb 30%, #f6d8d5 85%, #f2c4bf 100%);
+      overflow-x:hidden; /* prevent horizontal scroll */
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:10px 14px;font-weight:800;font-size:15px}
+    .wrap{max-width:1100px;margin:0 auto;padding:10px 12px}
+    .balances{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0}
+    .pill{background:#fff;border-radius:10px;border:1px solid #e5e7eb;padding:6px 10px;font-weight:800;font-size:12px}
+    .banner{padding:8px 10px;border-radius:10px;margin:8px 0;font-size:12px}
+    .ok{background:var(--okbg);border:1px solid #a7f3d0;color:var(--ok)}
+    .warn{background:var(--warnbg);border:1px solid #f6caca;color:var(--warn)}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 18px rgba(0,0,0,.06);padding:10px;margin:10px 0}
+
+    .table-wrap{width:100%} /* no overflow scrolling */
+    table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;font-size:12px}
+    th,td{padding:8px;border-bottom:1px solid #f1f5f9;text-align:left;white-space:normal;word-break:break-word}
+    th{background:#fafafa;font-weight:800;color:#7c1111}
+    tr:last-child td{border-bottom:none}
+
+    .btn{appearance:none;border:none;border-radius:999px;padding:7px 10px;font-weight:800;cursor:pointer;font-size:12px}
+    .btn.gold{background:var(--gold);color:#111;box-shadow:0 6px 16px rgba(251,191,36,.25)}
+    .btn.red{background:var(--brand);color:#fff}
+    .btn.gray{background:#e5e7eb}
+    .btn[disabled]{opacity:.55;cursor:not-allowed}
+
+    .muted{color:var(--muted);font-size:12px}
+    .tag{display:inline-block;border-radius:999px;padding:3px 7px;font-size:11px;font-weight:800}
+    .tag.req{background:#fff5d6;border:1px solid #f3cf69;color:#7c1111}
+    .tag.acc{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
+    .tag.har{background:#f1f5f9;border:1px solid #e5e7eb;color:#6b7280}
+
+    /* Amount picker like screenshot, smaller */
+    .amounts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+    .chip{display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid #e5e7eb;border-radius:999px;
+          padding:10px 8px;font-weight:900;font-size:13px}
+    .chip.primary{background:#7c1111;color:#fff;border-color:#7c1111}
+    .chip[disabled]{opacity:.55;cursor:not-allowed}
+  </style>
+</head>
+<body>
+  <header>BAM Funds</header>
+
+  <main class="wrap">
+    <div id="status"></div>
+
+    <!-- Wallets -->
+    <div class="balances">
+      <div class="pill">Main Wallet: <span id="mainW">UGX 0</span></div>
+      <div class="pill">Commission Wallet: <span id="comW">UGX 0</span></div>
+      <div class="pill">Verified Level: <span id="levelLbl">—</span></div>
+    </div>
+
+    <!-- Info table (NOTES column removed) -->
+    <section class="card">
+      <h2 style="margin:0 0 6px;font-size:15px">Fund Types</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th><th>Rate</th><th>Days</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Free Fund given once</td>
+              <td>3% / day</td>
+              <td>2 days</td>
+            </tr>
+            <tr>
+              <td>Paid Funds</td>
+              <td>2% / day</td>
+              <td>10 days</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Amount choices under the table -->
+      <p class="muted" style="margin:8px 0 4px">Choose an amount to invest:</p>
+      <div class="amounts" id="amountGrid">
+        <!-- chips injected -->
+      </div>
+
+      <p class="banner warn">Profits & principal are added to your <b>Commission Wallet</b> only after the period ends and you have to press <b>Harvest</b></p>
+    </section>
+
+    <!-- My investments (compact) -->
+    <section class="card">
+      <h2 style="margin:0 0 6px;font-size:15px">My Investments</h2>
+      <div class="table-wrap">
+        <table id="myFunds">
+          <thead>
+            <tr>
+              <th>Amount</th><th>Status</th><th>Days left</th><th></th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase v10 modules -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, collection, addDoc,
+      serverTimestamp, runTransaction, query, where, orderBy, getDocs
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    /* ---------- Setup ---------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = id => document.getElementById(id);
+    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
+    const daysMs = d => d * 24 * 60 * 60 * 1000;
+    const show = (html, ok=false) => { $('status').innerHTML = `<div class="banner ${ok?'ok':'warn'}">${html}</div>`; };
+
+    /* ---------- Config ---------- */
+    const FREE_FUND = { type:'FREE', amount:12000, rate:0.03, days:2, autoAccept:true };
+    const PAID_AMOUNTS = [229000, 625000, 1940000, 5210000];
+    const PAID_RATE = 0.02, PAID_DAYS = 10;
+
+    let me=null, userDoc=null, verifiedLevel=null;
+    let processingInvest = false; // guard invest
+    const harvesting = new Set(); // guard harvest per-id
+
+    function getVerifiedLevel(u){
+      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+      for(const lv of order){ if(u?.[lv]?.status==="verified") return lv; }
+      return null;
+    }
+
+    function renderAmountChips(){
+      const g = $('amountGrid');
+      const chips = [];
+      chips.push(`<button class="chip primary" data-type="FREE" data-amount="${FREE_FUND.amount}">UGX ${FREE_FUND.amount.toLocaleString('en-UG')} (Free)</button>`);
+      for(const a of PAID_AMOUNTS){
+        chips.push(`<button class="chip" data-type="PAID" data-amount="${a}">UGX ${a.toLocaleString('en-UG')}</button>`);
+      }
+      g.innerHTML = chips.join('');
+      g.querySelectorAll('.chip').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          await startInvest(btn, btn.getAttribute('data-type'), Number(btn.getAttribute('data-amount')));
+        });
+      });
+    }
+
+    async function loadBalances(){
+      const ref = doc(db,'users', me.uid);
+      const snap = await getDoc(ref);
+      userDoc = snap.exists() ? snap.data() : {};
+      $('mainW').textContent = UGX(userDoc.mainWallet||0);
+      $('comW').textContent  = UGX(userDoc.commissionWallet||0);
+      verifiedLevel = getVerifiedLevel(userDoc);
+      $('levelLbl').textContent = verifiedLevel || 'None';
+    }
+
+    function timeLeftString(endsAtMs){
+      const now = Date.now();
+      let diff = Math.max(0, (endsAtMs||0) - now);
+      const d = Math.floor(diff / (24*3600*1000)); diff -= d*24*3600*1000;
+      const h = Math.floor(diff / (3600*1000)); diff -= h*3600*1000;
+      const m = Math.floor(diff / (60*1000));
+      return `${d}d ${h}h ${m}m`;
+    }
+
+    async function listMyFunds(){
+      const tb = $('myFunds').querySelector('tbody');
+      tb.innerHTML = `<tr><td colspan="4" class="muted">Loading…</td></tr>`;
+
+      const qy = query(collection(db,'funds'), where('uid','==', me.uid), orderBy('createdAt','desc'));
+      const snap = await getDocs(qy);
+      const rows=[];
+      snap.forEach(d=>{
+        const v = d.data();
+        const canHarvest = v.status==='accepted' && Date.now() >= (v.endsAtMs||0) && v.status!=='harvested';
+        const tag =
+          v.status==='harvested' ? '<span class="tag har">harvested</span>' :
+          v.status==='accepted'  ? '<span class="tag acc">accepted</span>' :
+                                   '<span class="tag req">requesting</span>';
+        rows.push(`
+          <tr data-id="${d.id}">
+            <td>${UGX(v.amount)}</td>
+            <td>${tag}</td>
+            <td>${v.endsAtMs ? timeLeftString(v.endsAtMs) : '—'}</td>
+            <td><button class="btn ${canHarvest?'red':'gray'}" data-act="harvest" ${canHarvest?'':'disabled'}>Harvest</button></td>
+          </tr>
+        `);
+      });
+      tb.innerHTML = rows.length? rows.join('') : `<tr><td colspan="4" class="muted">No investments yet.</td></tr>`;
+
+      tb.querySelectorAll('[data-act="harvest"]').forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const tr = btn.closest('tr'); const id = tr.getAttribute('data-id');
+          if (harvesting.has(id)) return;
+          harvesting.add(id);
+          const prev = btn.textContent; btn.disabled = true; btn.textContent = 'Processing…';
+          try{ await doHarvest(id); } finally {
+            harvesting.delete(id);
+            btn.textContent = prev; // refreshed by reload
+          }
+        });
+      });
+    }
+
+    async function hasAnyFreeFundEver(){
+      const qy = query(collection(db,'funds'), where('uid','==', me.uid), where('type','==','FREE'));
+      const snap = await getDocs(qy);
+      return !snap.empty;
+    }
+
+    async function startInvest(buttonEl, type, amount){
+      if (processingInvest) return;
+      processingInvest = true;
+      if (buttonEl){ buttonEl.disabled = true; const t=buttonEl.textContent; buttonEl.dataset.prev=t; buttonEl.textContent='Processing…'; }
+
+      try{
+        await loadBalances();
+        let cfg;
+        if(type==='FREE'){
+          cfg = { ...FREE_FUND };
+          if(!verifiedLevel){ show('Free Fund requires a <b>verified level</b>. Upgrade and try again.'); return; }
+          if(await hasAnyFreeFundEver()){ show('You have already used the Free Fund once in your lifetime.'); return; }
+        }else{
+          cfg = { type:'PAID', amount, rate:0.02, days:10, autoAccept:false };
+          const bal = Number(userDoc.mainWallet||0);
+          if(bal < amount){ show(`Insufficient balance. Need ${UGX(amount)} in Main Wallet.`); return; }
+        }
+
+        await runTransaction(db, async (tx)=>{
+          const uref = doc(db,'users', me.uid);
+          const usnap = await tx.get(uref);
+          const u = usnap.exists()? usnap.data(): {};
+
+          if(cfg.type==='PAID'){
+            const bal = Number(u.mainWallet||0);
+            if(bal < cfg.amount) throw new Error('Insufficient balance.');
+            tx.set(uref, { mainWallet: bal - cfg.amount }, { merge:true });
+          }
+
+          const now = Date.now();
+          const ends = now + (cfg.days * 24 * 60 * 60 * 1000);
+
+          await addDoc(collection(db,'funds'), {
+            uid: me.uid,
+            type: cfg.type,
+            amount: cfg.amount,
+            rate: cfg.rate,
+            days: cfg.days,
+            status: cfg.autoAccept ? 'accepted' : 'requesting',
+            createdAt: serverTimestamp(),
+            createdAtMs: now,
+            endsAtMs: ends
+          });
+        });
+
+        show('Investment created successfully.', true);
+        await Promise.all([loadBalances(), listMyFunds()]);
+      }catch(e){
+        console.error(e);
+        show(e.message || 'Failed to create investment.');
+      }finally{
+        processingInvest = false;
+        if (buttonEl){ buttonEl.disabled = false; buttonEl.textContent = buttonEl.dataset.prev || buttonEl.textContent; }
+      }
+    }
+
+    async function doHarvest(fundId){
+      try{
+        await runTransaction(db, async (tx)=>{
+          const fref = doc(db,'funds', fundId);
+          const fsnap = await tx.get(fref);
+          if(!fsnap.exists()) throw new Error('Fund not found.');
+          const f = fsnap.data();
+          if(f.uid !== me.uid) throw new Error('Not your fund.');
+          if(f.status !== 'accepted') throw new Error('Fund not accepted yet.');
+          if(Date.now() < (f.endsAtMs||0)) throw new Error('Investment period not finished.');
+
+          const total = Math.floor(f.amount * (1 + f.rate * f.days));
+
+          const uref = doc(db,'users', me.uid);
+          const usnap = await tx.get(uref);
+          const u = usnap.exists()? usnap.data(): {};
+          const newCom = Number(u.commissionWallet||0) + total;
+
+          tx.update(fref, { status:'harvested', harvestedAt: serverTimestamp() });
+          tx.set(uref, { commissionWallet: newCom }, { merge:true });
+        });
+
+        show('Harvested! Principal + profit added to Commission Wallet.', true);
+        await Promise.all([loadBalances(), listMyFunds()]);
+      }catch(e){
+        console.error(e);
+        show(e.message || 'Harvest failed.');
+      }
+    }
+
+    onAuthStateChanged(auth, async (u)=>{
+      if(!u){ location.href='login.html'; return; }
+      me = u;
+      renderAmountChips();
+      await loadBalances();
+      await listMyFunds();
+      show('Free Fund requires a verified level.', true);
+    });
+  </script>
+</body>
+</html>
