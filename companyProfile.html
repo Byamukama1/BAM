@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Company Profile</title>
+  <meta name="description" content="BAM — Building Architecture & Management • Business Advertising & Marketing • Banking & Asset Management • Building & Maintenance. Expanding across Africa." />
+  <style>
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --ink:#161617; --muted:#6b7280; --bg:#fff;
+      --soft1:#fbeceb; --soft2:#f6d8d5; --soft3:#f2c4bf;
+      --ok:#065f46; --okbg:#ecfdf5;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(120% 120% at -10% -10%, var(--soft1) 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, var(--soft2) 0%, transparent 60%),
+        linear-gradient(180deg, #fff 0%, var(--soft1) 30%, var(--soft2) 85%, var(--soft3) 100%);
+      line-height:1.55;
+    }
+    header{
+      background:linear-gradient(135deg,var(--brand),var(--brand-d));
+      color:#fff; padding:16px 18px; font-weight:900; letter-spacing:.2px;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    h1,h2,h3{margin:0 0 10px}
+    h1{font-size:34px;line-height:1.2}
+    h2{font-size:24px;line-height:1.25;color:#7c1111}
+    p{margin:0 0 10px}
+    .lead{font-size:18px;color:#2a2a2a}
+    .muted{color:var(--muted)}
+    .card{
+      background:#fff;border-radius:16px;border:1px solid #f1f5f9;
+      box-shadow:0 10px 24px rgba(0,0,0,.06); padding:16px; margin:14px 0;
+    }
+    /* Hero */
+    .hero{
+      display:grid; gap:14px; align-items:center;
+      grid-template-columns:1.2fr .8fr;
+    }
+    .hero .cta{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      appearance:none;border:none;border-radius:999px;
+      padding:12px 16px;font-weight:900;cursor:pointer
+    }
+    .btn.gold{background:var(--gold);color:#111;box-shadow:0 6px 16px rgba(251,191,36,.25)}
+    .btn.ghost{background:#fff;border:1px solid #e5e7eb}
+    .badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;font-weight:800}
+    /* Sectors */
+    .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    @media (max-width:980px){ .hero{grid-template-columns:1fr} .grid-4{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:520px){ .grid-4{grid-template-columns:1fr} }
+    .sector{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+    .sector h3{font-size:16px}
+    .sector p{font-size:14px}
+    /* Africa */
+    .pill{display:inline-block;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;font-weight:800;margin:4px 6px 0 0}
+    .ok{background:var(--okbg);border-color:#a7f3d0;color:var(--ok)}
+    /* Lists */
+    ul{margin:8px 0 0 18px;padding:0}
+    li{margin:6px 0}
+    /* Socials */
+    .socials{display:flex;gap:10px;flex-wrap:wrap}
+    .socials a{display:flex;align-items:center;gap:8px;text-decoration:none;color:#111;background:#fff;border:1px solid #e5e7eb;border-radius:999px;padding:10px 14px;font-weight:800}
+    .socials svg{width:18px;height:18px}
+    footer{padding:18px;color:#666}
+    .small{font-size:12px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:820px){ .two-col{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header>BAM • Company Profile</header>
+
+  <main class="wrap">
+
+    <!-- Hero -->
+    <section class="card hero">
+      <div>
+        <div class="badge">Building connections that last</div>
+        <h1>Transforming infrastructure, amplifying brands, and growing capital.</h1>
+        <p class="lead">
+          Across Ireland and now Africa, BAM delivers projects that go far beyond construction.
+          We build pathways that unite and empower communities — driving inclusive growth for generations.
+        </p>
+        <div class="cta" style="margin-top:8px">
+          <a class="btn gold" href="https://thebamcompanies.com/" target="_blank" rel="noopener">Visit Global BAM</a>
+          <a class="btn ghost" href="#africa">BAM in Africa</a>
+        </div>
+      </div>
+      <div class="muted">
+        <p><b>Contract Policy (Africa):</b><br>
+          Construction contracts are accepted from <b>UGX 1,000,000,000</b> (≈ <b>$27,000</b>), confirmed by a
+          <b>$5,000</b> deposit (≈ <b>UGX 19,000,000</b>).
+        </p>
+        <p class="small muted" style="margin-top:8px">
+          Inspired by global asset management leaders (e.g., Brookfield Asset Management:
+          <a href="https://bam.brookfield.com/" target="_blank" rel="noopener">bam.brookfield.com</a>).
+        </p>
+      </div>
+    </section>
+
+    <!-- Sectors -->
+    <section class="card">
+      <h2>Our Four Sectors</h2>
+      <div class="grid-4" style="margin-top:8px">
+        <article class="sector">
+          <h3>Building Architecture &amp; Management</h3>
+          <p>End-to-end delivery of complex builds: transport, industrial, and civic assets. We integrate design, PMO, and quality to deliver on time and to spec.</p>
+        </article>
+        <article class="sector">
+          <h3>Business Advertising &amp; Marketing</h3>
+          <p>Digital campaigns, outdoor media, media buying, and growth strategy that connect brands to audiences across fast-growing African markets.</p>
+        </article>
+        <article class="sector">
+          <h3>Banking &amp; Asset Management</h3>
+          <p>Capital solutions and asset growth frameworks to support infrastructure and brand expansion — built on disciplined risk and long-term value.</p>
+        </article>
+        <article class="sector">
+          <h3>Building &amp; Maintenance</h3>
+          <p>Operational excellence for public and private assets — lifecycle maintenance, safety, uptime, and sustainability baked into every contract.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- Africa Expansion -->
+    <section id="africa" class="card">
+      <h2>Expanding Across Africa</h2>
+      <div class="two-col">
+        <div>
+          <p>BAM is operating in <b>Nigeria</b>, <b>Tanzania</b>, <b>Ghana</b>, and <b>Uganda</b> (recently launched).</p>
+          <div style="margin:6px 0 10px">
+            <span class="pill ok">Construction: Active</span>
+            <span class="pill ok">Advertising &amp; Marketing: Active</span>
+            <span class="pill">Banking &amp; Asset Management: Rolling out</span>
+          </div>
+          <ul>
+            <li><b>Infrastructure demand:</b> roads, rail, and urban upgrades require large, trusted partners.</li>
+            <li><b>Market growth:</b> young, digital-first populations accelerate brand reach and adoption.</li>
+            <li><b>Capital bridge:</b> structured financing unlocks projects and SME scale-ups.</li>
+            <li><b>Inclusive impact:</b> every asset connects people to trade, jobs, and opportunity.</li>
+          </ul>
+        </div>
+        <div>
+          <div class="badge">Opportunity Snapshot</div>
+          <ul style="margin-top:8px">
+            <li>Contracts from <b>UGX 1B</b> (≈$27k), secured by <b>$5k</b> deposit.</li>
+            <li>Roads &amp; rail that link villages, towns, and cities for efficient trade.</li>
+            <li>Advertising platforms that boost visibility and revenue for local businesses.</li>
+            <li>Asset strategies designed to create long-term, compounding value.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Social & Links -->
+    <section class="card">
+      <h2>Follow BAM</h2>
+      <p class="muted">Stay updated with our projects, partnerships, and opportunities.</p>
+      <div class="socials" style="margin-top:10px">
+        <a href="https://youtu.be/YWMdvNViJ0w?si=poBiTHsub2O73HWu" target="_blank" rel="noopener" title="BAM on YouTube">
+          <!-- YouTube Icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a4.8 4.8 0 0 0-3.4-3.4C18.3 2.3 12 2.3 12 2.3s-6.3 0-8.1.5A4.8 4.8 0 0 0 .5 6.2 50.2 50.2 0 0 0 0 12c0 1.9.2 3.9.5 5.8a4.8 4.8 0 0 0 3.4 3.4c1.8.5 8.1.5 8.1.5s6.3 0 8.1-.5a4.8 4.8 0 0 0 3.4-3.4c.3-1.9.5-3.9.5-5.8 0-1.9-.2-3.9-.5-5.8zM9.7 15.5V8.5l6.5 3.5-6.5 3.5z"/></svg>
+          YouTube
+        </a>
+        <a href="https://x.com/bamukandireland?t=b2qDGpBTWadM1v3v490IRw&s=09" target="_blank" rel="noopener" title="BAM on X">
+          <!-- X Icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2H21.5l-7.51 8.58L23.5 22h-7.31l-5.72-6.64L3.5 22H.244l8.08-9.23L.5 2h7.31l5.18 6.02L18.244 2Zm-1.28 18h2.02L7.12 4h-2L16.964 20Z"/></svg>
+          X (Twitter)
+        </a>
+        <a href="https://thebamcompanies.com/" target="_blank" rel="noopener" title="The BAM Companies">
+          <!-- Link Icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.9 12a5 5 0 0 1 5-5h3v2h-3a3 3 0 1 0 0 6h3v2h-3a5 5 0 0 1-5-5Zm6-1h4v2h-4v-2Zm5.2-4h3a5 5 0 1 1 0 10h-3v-2h3a3 3 0 1 0 0-6h-3V7Z"/></svg>
+          thebamcompanies.com
+        </a>
+        <a href="https://bam.brookfield.com/" target="_blank" rel="noopener" title="Brookfield Asset Management">
+          <!-- Building/Bank Icon -->
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 22V4l8-3 8 3v18H4Zm12-2h2V5.6l-6-2.25V20h2v-6h2v6ZM6 20h4V6.3L6 7.6V20Z"/></svg>
+          Brookfield (reference)
+        </a>
+      </div>
+    </section>
+
+    <!-- Closing -->
+    <section class="card">
+      <h2>Partner With BAM</h2>
+      <p>
+        We’re not just building roads and railways — we’re building opportunity. From resilient infrastructure to
+        high-impact brand growth and disciplined asset strategies, BAM is your partner for long-term progress.
+      </p>
+      <div class="cta" style="margin-top:10px">
+        <a class="btn gold" href="#africa">Explore Africa Operations</a>
+      
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="wrap small">
+    © <span id="yr"></span> BAM. All rights reserved.
+  </footer>
+
+  <script>
+    document.getElementById('yr').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
