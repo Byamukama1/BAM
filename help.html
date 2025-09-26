@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Help & Guide</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --rose25:#fbeceb; --rose50:#f6d8d5; --rose75:#f2c4bf;
+      --ink:#161617; --muted:#6b7280; --ok:#065f46; --okbg:#ecfdf5; --warn:#7c1111; --warnbg:#fff3f3;
+    }
+    *{box-sizing:border-box;font-family:'Poppins',sans-serif}
+    body{
+      margin:0;color:var(--ink);line-height:1.55;
+      background:
+        radial-gradient(120% 120% at -10% -10%, var(--rose25) 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, var(--rose50) 0%, transparent 60%),
+        linear-gradient(180deg,#fff 0%,var(--rose25) 30%,var(--rose50) 85%,var(--rose75) 100%);
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;
+      padding:16px;font-weight:700;font-size:20px;letter-spacing:.3px;text-align:center}
+    .wrap{max-width:960px;margin:0 auto;padding:18px}
+    .top-help{
+      position:sticky;top:0;z-index:20;background:#fff;border:1px solid #f1f5f9;
+      padding:12px 14px;border-radius:12px;display:flex;flex-wrap:wrap;
+      align-items:center;justify-content:space-between;box-shadow:0 8px 22px rgba(0,0,0,.06);
+      margin-bottom:16px
+    }
+    .wa{background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px 14px;
+      font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 8px 20px rgba(0,0,0,.06);
+      padding:18px;margin:18px 0}
+    h2{margin:0 0 10px;font-size:18px;color:var(--brand-d);font-weight:700}
+    h3{margin:12px 0 6px;font-size:15px;font-weight:600;color:#333}
+    p{margin:6px 0}
+    ol,ul{margin:10px 0 10px 22px}
+    .kv{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+    .kv .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;
+      padding:8px 10px;font-weight:600;font-size:13px}
+    .banner{padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
+    .ok{background:var(--okbg);border:1px solid #a7f3d0;color:var(--ok)}
+    .warn{background:var(--warnbg);border:1px solid #f6caca;color:var(--warn)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+    .chip{display:inline-block;background:#fff5d6;border:1px solid #f3cf69;border-radius:999px;
+      padding:6px 10px;font-size:12px;font-weight:700;color:#7c1111;margin:6px 0}
+    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn.gold{background:var(--gold);color:#111;box-shadow:0 6px 16px rgba(251,191,36,.25);
+      text-decoration:none;display:inline-block}
+    .muted{color:var(--muted);font-size:13px}
+    .footer-wa{text-align:center;margin-top:14px}
+  </style>
+</head>
+<body>
+  <header>BAM • Help & Guide</header>
+
+  <main class="wrap">
+    <!-- Manager contact always visible -->
+    <div class="top-help">
+      <span style="font-weight:700;color:#111">Need help fast?</span>
+      <a class="wa" href="https://wa.me/447346269300" target="_blank" rel="noopener">💬 WhatsApp Manager</a>
+    </div>
+
+    <!-- Deposit -->
+    <section class="card">
+      <h2>1. How to Deposit (Eversend)</h2>
+      <p class="muted">These steps are exactly what you’ll see on the <b>Eversend Payment</b> page.</p>
+
+      <div class="kv">
+        <div class="box">Method: <b>Eversend</b></div>
+        <div class="box">Reference: <b>Recharge BAM</b></div>
+      </div>
+
+      <ol>
+        <li>Tap the yellow button <b>TO USE EVERSEND TO PAY</b>.</li>
+        <li>Enter the <b>amount</b> and your <b>names</b>.</li>
+        <li>Add a note: <b>Recharge BAM</b>.</li>
+        <li>Use the same phone number to get OTP on WhatsApp.</li>
+        <li>Enter OTP, then your <b>PIN</b>.</li>
+        <li>Take a screenshot of the MTN/Airtel/GT Bank message.</li>
+        <li>Back in BAM, upload the screenshot → press <b>Successful</b>.</li>
+      </ol>
+
+      <div class="banner warn">
+        ⚠️ <b>Don’t click Successful before payment is finished (PIN entered)</b>  
+        or your account may be banned.
+      </div>
+    </section>
+
+    <!-- Tasks -->
+    <section class="card">
+      <h2>2. How Tasks Work</h2>
+      <p>Tasks are adverts (mostly YouTube videos). You earn after watching and claiming.</p>
+
+      <ol>
+        <li>Open <b>Tasks</b> page.</li>
+        <li>Tap a task → video plays.</li>
+        <li>Tap <b>Claim (10s)</b> to start countdown.</li>
+        <li>After 10 seconds, tap <b>Claim Reward</b> → reward is added.</li>
+      </ol>
+
+      <div class="banner ok">Rewards go into your <b>Commission Wallet</b>. Each advert: once per day.</div>
+
+      <h3 class="chip">Earnings & Daily Limits</h3>
+      <div class="grid">
+        <div class="banner ok"><b>Intern:</b> UGX 300 • 5/day (3 days)</div>
+        <div class="banner ok"><b>B1:</b> UGX 330 • 7/day</div>
+        <div class="banner ok"><b>B2:</b> UGX 430 • 17/day</div>
+        <div class="banner ok"><b>B3:</b> UGX 735 • 28/day</div>
+        <div class="banner ok"><b>B4:</b> UGX 1,200 • 54/day</div>
+        <div class="banner ok"><b>B5:</b> UGX 2,250 • 80/day</div>
+        <div class="banner ok"><b>B6:</b> UGX 3,700 • 130/day</div>
+        <div class="banner ok"><b>B7:</b> UGX 6,500 • 175/day</div>
+        <div class="banner ok"><b>B8:</b> UGX 8,750 • 260/day</div>
+        <div class="banner ok"><b>B9:</b> UGX 15,000 • 300/day</div>
+      </div>
+
+      <p class="muted">If your upgrade is under review, you still work as an <b>Intern</b> until verified.</p>
+    </section>
+
+    <!-- Quick Help -->
+    <section class="card">
+      <h2>3. Quick Help</h2>
+      <ul>
+        <li>Deposit not showing? Check you uploaded the screenshot and correct number.</li>
+        <li>“Already claimed” means you did that task today.</li>
+        <li>Need more help? Contact manager below.</li>
+      </ul>
+      <div class="footer-wa">
+        <a class="wa" href="https://wa.me/447346269300" target="_blank" rel="noopener">💬 WhatsApp Manager</a>
+      </div>
+    </section>
+
+    <div style="text-align:center;margin-top:16px">
+      <a class="btn gold" href="index.html">⬅️ Back to Home</a>
+    </div>
+  </main>
+</body>
+</html>
