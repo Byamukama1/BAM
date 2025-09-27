@@ -24,70 +24,43 @@
     }
     .table-wrap{border:2px solid var(--brand);border-radius:10px;overflow-x:auto}
     table{width:100%;border-collapse:collapse}
-    colgroup col:nth-child(1){width:12%}   /* Level */
-    colgroup col:nth-child(2){width:18%}   /* Deposit */
-    colgroup col:nth-child(3){width:14%}   /* Daily income */
-    colgroup col:nth-child(4){width:8%}    /* Tasks */
-    colgroup col:nth-child(5){width:14%}   /* Per task */
-    colgroup col:nth-child(6){width:16%}   /* Monthly */
-    colgroup col:nth-child(7){width:18%}   /* Annual */
+    /* New 6-column layout (no horizontal scroll) */
+    colgroup col:nth-child(1){width:14%}   /* Level */
+    colgroup col:nth-child(2){width:22%}   /* Deposit */
+    colgroup col:nth-child(3){width:18%}   /* Daily income */
+    colgroup col:nth-child(4){width:10%}   /* Tasks */
+    colgroup col:nth-child(5){width:18%}   /* Per task */
+    colgroup col:nth-child(6){width:18%}   /* 100 days */
     thead th{
       background:linear-gradient(180deg,var(--brand-d),var(--brand));
-      color:#fff;font-size:10px;padding:5px;text-align:center
+      color:#fff;font-size:10px;padding:6px;text-align:center
     }
     tbody td{
-      font-size:10px;padding:5px;border-right:1px solid #f2d1d1;text-align:right
+      font-size:10px;padding:6px;border-right:1px solid #f2d1d1;text-align:right
     }
     tbody td:first-child, tbody td:nth-child(4){text-align:center}
     tbody tr:nth-child(odd){background:var(--rowA)}
     tbody tr:nth-child(even){background:var(--rowB)}
     .lvl{font-weight:900;color:var(--brand-d)}
-    
+
     /* Explanation section styles */
-    .explanation-section {
-      margin-top: 30px;
-      border-top: 2px solid var(--brand);
-      padding-top: 20px;
-    }
-    .explanation-title {
-      font-weight: 900;
-      color: var(--brand-d);
-      text-align: center;
-      margin-bottom: 15px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .level-explanation {
-      margin-bottom: 25px;
-      padding: 15px;
-      background: var(--rowA);
-      border-radius: 8px;
-      border-left: 4px solid var(--brand);
-    }
-    .level-explanation h3 {
-      color: var(--brand-d);
-      margin-top: 0;
-      margin-bottom: 10px;
-    }
-    .level-explanation p {
-      margin: 5px 0;
-      font-size: 14px;
-      line-height: 1.5;
-    }
-    .highlight {
-      font-weight: 700;
-      color: var(--brand-d);
-    }
+    .explanation-section { margin-top: 30px; border-top: 2px solid var(--brand); padding-top: 20px; }
+    .explanation-title { font-weight: 900; color: var(--brand-d); text-align: center; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+    .level-explanation { margin-bottom: 18px; padding: 12px; background: var(--rowA); border-radius: 8px; border-left: 4px solid var(--brand); }
+    .level-explanation h3 { color: var(--brand-d); margin: 0 0 6px; font-size: 14px; }
+    .level-explanation p { margin: 0; font-size: 13px; line-height: 1.5; }
+    .highlight { font-weight: 700; color: var(--brand-d); }
   </style>
 </head>
 <body>
   <header>BAM</header>
   <main class="wrap">
-    <div class="title-strip">Employee Level Income Details (UGX)</div>
+    <div class="title-strip">Employee Level Income Details </div>
+
     <div class="table-wrap">
       <table>
         <colgroup>
-          <col><col><col><col><col><col><col>
+          <col><col><col><col><col><col>
         </colgroup>
         <thead>
           <tr>
@@ -96,77 +69,70 @@
             <th>Daily Income</th>
             <th>Tasks</th>
             <th>Per Task</th>
-            <th>Monthly</th>
-            <th>Annual</th>
+            <th>100 Days(3 months and 10 free days)</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td class="lvl">INTERN</td><td>—</td><td>1,500</td><td>5</td><td>300</td><td>4,500</td><td>4,500</td></tr>
-          <tr><td class="lvl">B1</td><td>80,000</td><td>2,310</td><td>7</td><td>330</td><td>69,300</td><td>831,600</td></tr>
-          <tr><td class="lvl">B2</td><td>229,000</td><td>7,310</td><td>17</td><td>430</td><td>219,300</td><td>2,631,600</td></tr>
-          <tr><td class="lvl">B3</td><td>625,000</td><td>20,580</td><td>28</td><td>735</td><td>617,400</td><td>7,408,800</td></tr>
-          <tr><td class="lvl">B4</td><td>1,940,000</td><td>64,800</td><td>54</td><td>1,200</td><td>1,944,000</td><td>24,000,000</td></tr>
-          <tr><td class="lvl">B5</td><td>5,210,000</td><td>180,000</td><td>80</td><td>2,250</td><td>5,400,000</td><td>64,000,000</td></tr>
-          <tr><td class="lvl">B6</td><td>14,000,000</td><td>481,000</td><td>130</td><td>3,700</td><td>15,000,000</td><td>173,000,000</td></tr>
-          <tr><td class="lvl">B7</td><td>30,000,000</td><td>1,137,500</td><td>175</td><td>6,500</td><td>34,000,000</td><td>409,000,000</td></tr>
-          <tr><td class="lvl">B8</td><td>60,000,000</td><td>2,000,000</td><td>260</td><td>8,750</td><td>68,000,000</td><td>819,000,000</td></tr>
-          <tr><td class="lvl">B9</td><td>99,000,000</td><td>4,000,000</td><td>300</td><td>15,000</td><td>135,000,000</td><td>1,620,000,000</td></tr>
+          <tr><td class="lvl">B1</td><td>80,000</td><td>2,310</td><td>7</td><td>330</td><td>231,000</td></tr>
+          <tr><td class="lvl">B2</td><td>229,000</td><td>7,310</td><td>17</td><td>430</td><td>731,000</td></tr>
+          <tr><td class="lvl">B3</td><td>625,000</td><td>20,580</td><td>28</td><td>735</td><td>2,058,000</td></tr>
+          <tr><td class="lvl">B4</td><td>1,940,000</td><td>64,800</td><td>54</td><td>1,200</td><td>6,480,000</td></tr>
+          <tr><td class="lvl">B5</td><td>5,210,000</td><td>180,000</td><td>80</td><td>2,250</td><td>18,000,000</td></tr>
+          <tr><td class="lvl">B6</td><td>14,000,000</td><td>481,000</td><td>130</td><td>3,700</td><td>48,100,000</td></tr>
+          <tr><td class="lvl">B7</td><td>30,000,000</td><td>1,137,500</td><td>175</td><td>6,500</td><td>113,750,000</td></tr>
+          <tr><td class="lvl">B8</td><td>60,000,000</td><td>2,000,000</td><td>260</td><td>8,750</td><td>200,000,000</td></tr>
+          <tr><td class="lvl">B9</td><td>99,000,000</td><td>4,000,000</td><td>300</td><td>15,000</td><td>400,000,000</td></tr>
         </tbody>
       </table>
     </div>
 
     <!-- Explanation Section -->
     <div class="explanation-section">
-      <h2 class="explanation-title">Explanation of Employee Levels</h2>
-      
-      <div class="level-explanation">
-        <h3>INTERN</h3>
-        <p>Interns do not need a deposit. There are <span class="highlight">5</span> tasks per day, and each task earns a commission of <span class="highlight">300 UGX</span>. Interns can earn <span class="highlight">1,500 UGX per day</span>. The internship period is <span class="highlight">3 days</span>.</p>
-      </div>
-      
+      <h2 class="explanation-title">How the 100-Day Cycle Works</h2>
+
       <div class="level-explanation">
         <h3>B1</h3>
-        <p>The deposit for B1 is <span class="highlight">80,000 UGX</span>. Tasks per day: <span class="highlight">7</span>. Commission per task: <span class="highlight">330 UGX</span>. Total daily income: <span class="highlight">2,310 UGX</span>; monthly: <span class="highlight">69,300 UGX</span>; annual: <span class="highlight">831,600 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 80,000</span> • Tasks/day: <span class="highlight">7</span> • Per task: <span class="highlight">UGX 330</span> • Daily: <span class="highlight">UGX 2,310</span> • <b>100-Day Total:</b> <span class="highlight">UGX 231,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B2</h3>
-        <p>The deposit for B2 is <span class="highlight">229,000 UGX</span>. Tasks per day: <span class="highlight">17</span>. Commission per task: <span class="highlight">430 UGX</span>. Total daily income: <span class="highlight">7,310 UGX</span>; monthly: <span class="highlight">219,300 UGX</span>; annual: <span class="highlight">2,631,600 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 229,000</span> • Tasks/day: <span class="highlight">17</span> • Per task: <span class="highlight">UGX 430</span> • Daily: <span class="highlight">UGX 7,310</span> • <b>100-Day Total:</b> <span class="highlight">UGX 731,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B3</h3>
-        <p>The deposit for B3 is <span class="highlight">625,000 UGX</span>. Tasks per day: <span class="highlight">28</span>. Commission per task: <span class="highlight">735 UGX</span>. Total daily income: <span class="highlight">20,580 UGX</span>; monthly: <span class="highlight">617,400 UGX</span>; annual: <span class="highlight">7,408,800 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 625,000</span> • Tasks/day: <span class="highlight">28</span> • Per task: <span class="highlight">UGX 735</span> • Daily: <span class="highlight">UGX 20,580</span> • <b>100-Day Total:</b> <span class="highlight">UGX 2,058,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B4</h3>
-        <p>The deposit for B4 is <span class="highlight">1,940,000 UGX</span>. Tasks per day: <span class="highlight">54</span>. Commission per task: <span class="highlight">1,200 UGX</span>. Total daily income: <span class="highlight">64,800 UGX</span>; monthly: <span class="highlight">1,944,000 UGX</span>; annual: <span class="highlight">24,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 1,940,000</span> • Tasks/day: <span class="highlight">54</span> • Per task: <span class="highlight">UGX 1,200</span> • Daily: <span class="highlight">UGX 64,800</span> • <b>100-Day Total:</b> <span class="highlight">UGX 6,480,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B5</h3>
-        <p>The deposit for B5 is <span class="highlight">5,210,000 UGX</span>. Tasks per day: <span class="highlight">80</span>. Commission per task: <span class="highlight">2,250 UGX</span>. Total daily income: <span class="highlight">180,000 UGX</span>; monthly: <span class="highlight">5,400,000 UGX</span>; annual: <span class="highlight">64,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 5,210,000</span> • Tasks/day: <span class="highlight">80</span> • Per task: <span class="highlight">UGX 2,250</span> • Daily: <span class="highlight">UGX 180,000</span> • <b>100-Day Total:</b> <span class="highlight">UGX 18,000,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B6</h3>
-        <p>The deposit for B6 is <span class="highlight">14,000,000 UGX</span>. Tasks per day: <span class="highlight">130</span>. Commission per task: <span class="highlight">3,700 UGX</span>. Total daily income: <span class="highlight">481,000 UGX</span>; monthly: <span class="highlight">15,000,000 UGX</span>; annual: <span class="highlight">173,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 14,000,000</span> • Tasks/day: <span class="highlight">130</span> • Per task: <span class="highlight">UGX 3,700</span> • Daily: <span class="highlight">UGX 481,000</span> • <b>100-Day Total:</b> <span class="highlight">UGX 48,100,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B7</h3>
-        <p>The deposit for B7 is <span class="highlight">30,000,000 UGX</span>. Tasks per day: <span class="highlight">175</span>. Commission per task: <span class="highlight">6,500 UGX</span>. Total daily income: <span class="highlight">1,137,500 UGX</span>; monthly: <span class="highlight">34,000,000 UGX</span>; annual: <span class="highlight">409,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 30,000,000</span> • Tasks/day: <span class="highlight">175</span> • Per task: <span class="highlight">UGX 6,500</span> • Daily: <span class="highlight">UGX 1,137,500</span> • <b>100-Day Total:</b> <span class="highlight">UGX 113,750,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B8</h3>
-        <p>The deposit for B8 is <span class="highlight">60,000,000 UGX</span>. Tasks per day: <span class="highlight">260</span>. Commission per task: <span class="highlight">8,750 UGX</span>. Total daily income: <span class="highlight">2,000,000 UGX</span>; monthly: <span class="highlight">68,000,000 UGX</span>; annual: <span class="highlight">819,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 60,000,000</span> • Tasks/day: <span class="highlight">260</span> • Per task: <span class="highlight">UGX 8,750</span> • Daily: <span class="highlight">UGX 2,000,000</span> • <b>100-Day Total:</b> <span class="highlight">UGX 200,000,000</span>.</p>
       </div>
-      
+
       <div class="level-explanation">
         <h3>B9</h3>
-        <p>The deposit for B9 is <span class="highlight">99,000,000 UGX</span>. Tasks per day: <span class="highlight">300</span>. Commission per task: <span class="highlight">15,000 UGX</span>. Total daily income: <span class="highlight">4,000,000 UGX</span>; monthly: <span class="highlight">135,000,000 UGX</span>; annual: <span class="highlight">1,620,000,000 UGX</span>.</p>
+        <p>Deposit: <span class="highlight">UGX 99,000,000</span> • Tasks/day: <span class="highlight">300</span> • Per task: <span class="highlight">UGX 15,000</span> • Daily: <span class="highlight">UGX 4,000,000</span> • <b>100-Day Total:</b> <span class="highlight">UGX 400,000,000</span>.</p>
       </div>
     </div>
   </main>
