@@ -323,8 +323,8 @@
       let total = 0;
       snap.forEach(d=>{
         const v = d.data();
-        const net = (typeof v.netAmount === "number") ? v.netAmount : (v.amount || 0);
-        total += Number(net || 0);
+        const amt = (typeof v.amount === "number") ? v.amount : (v.netAmount || 0); // use gross amount
+        total += Number(amt || 0);
       });
       return total;
     }
