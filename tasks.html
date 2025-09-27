@@ -246,7 +246,7 @@
         <div class="controls">
           <span class="earn">Earn ${earnStr}</span>
           <button class="btn primary" id="${btnId}">${
-            MODE==="BLOCKED" ? "Under review – wait" : "Claim (10s)"
+            MODE==="BLOCKED" ? "Waiting to get verified" : "Claim (10s)"
           }</button>
         </div>
       `;
@@ -327,25 +327,56 @@
             return;
           }
 
-          // Credit and log event
+          // *** FIXED TRANSACTION: read all docs first, then write ***
           await runTransaction(db, async (tx)=>{
-            const uref = doc(db,"users",user.uid);
+            const uref   = doc(db,"users",user.uid);
+            const evRef  = doc(collection(db,"tasks",user.uid,"events"));
+            const dateK  = todayKey();
+
+            // Prepare day marker refs (read BEFORE any write)
+            let markRef = null, markSnap = null;
+            if (levelUsed !== "INTERN") {
+              markRef = doc(collection(db,"tasks",user.uid,"dayMarkers"), `${dateK}_${levelUsed}`);
+              markSnap = await tx.get(markRef);
+            }
+
+            // Read user doc (BEFORE any write)
             const usnap = await tx.get(uref);
             const u = usnap.exists() ? usnap.data() : {};
-            const next = Number(u.commissionWallet || 0) + Number(cfg.perTask);
-            tx.set(uref, { commissionWallet: next }, { merge:true });
 
-            const evRef = doc(collection(db,"tasks",user.uid,"events"));
+            // Compute updates
+            const nextCommission = Number(u.commissionWallet || 0) + Number(cfg.perTask);
+            const userUpdate = { commissionWallet: nextCommission };
+
+            if (levelUsed !== "INTERN" && !markSnap) {
+              // (safety) but markSnap is always set if not INTERN
+            }
+            if (levelUsed !== "INTERN" && markSnap && !markSnap.exists()) {
+              const currentLevelMap = (u[levelUsed] || {});
+              const currentDaysLeft = typeof currentLevelMap.daysLeft === "number" ? currentLevelMap.daysLeft : 100;
+              const newDaysLeft = Math.max(0, currentDaysLeft - 1);
+              const nextLevelMap = { ...currentLevelMap, daysLeft: newDaysLeft };
+              if (newDaysLeft === 0) nextLevelMap.status = "completed 100 days";
+              userUpdate[levelUsed] = nextLevelMap;
+            }
+
+            // Now perform WRITES
+            tx.set(uref, userUpdate, { merge:true });
+
             tx.set(evRef, {
               adId: ad.id,
               amount: cfg.perTask,
-              dateKey: todayKey(),
+              dateKey: dateK,
               createdAt: serverTimestamp(),
               sourceType: ad.sourceType || null,
               url: ad.url || null,
               title: ad.title || null,
               levelUsed
             });
+
+            if (levelUsed !== "INTERN" && markSnap && !markSnap.exists()) {
+              tx.set(markRef, { level: levelUsed, dateKey: dateK, createdAt: serverTimestamp() });
+            }
           });
 
           // UI feedback
@@ -390,7 +421,7 @@
           if (ended){
             MODE = "BLOCKED";
             ACTIVE_LEVEL = "INTERN";
-            showBanner(`Your internship finished. Upgrade to <b>${underReviewLevel}</b> is <b>under review</b>. Please wait a few hours or <b>contact manager</b> for faster verification.`);
+            showBanner(`Your internship finished. Upgrade to <b>${underReviewLevel}</b> is pending verification. <b>Waiting to get verified</b>. Please check again later or <b>contact manager</b> for faster verification.`);
             await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
             return;
           } else {
