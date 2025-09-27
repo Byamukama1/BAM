@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Task Record</title>
+  <style>
+    :root{
+      --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24;
+      --rose25:#fbeceb; --rose50:#f6d8d5; --rose75:#f2c4bf;
+      --ink:#161617; --muted:#6b7280;
+    }
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{
+      margin:0;color:var(--ink);
+      background:
+        radial-gradient(120% 120% at -10% -10%, var(--rose25) 0%, transparent 60%),
+        radial-gradient(120% 120% at 110% -10%, var(--rose50) 0%, transparent 60%),
+        linear-gradient(180deg,#fff 0%,var(--rose25) 30%,var(--rose50) 85%,var(--rose75) 100%);
+    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:14px 16px;font-weight:800;letter-spacing:.3px}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px 14px 96px}
+    .card{background:rgba(255,255,255,.9);border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);padding:12px;margin:12px 0}
+    .muted{color:var(--muted);font-size:12px}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 8px;border-bottom:1px dashed #efd9d8}
+    .row:last-child{border-bottom:none}
+    .date{font-weight:800}
+    .pill{font-size:12px;font-weight:800;color:#0b5d2c;background:#e8fff2;border:1px solid #c3efda;border-radius:999px;padding:6px 10px}
+    .amt{font-weight:900;color:#b7791f}
+    .summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+    .chip{background:#fff3f3;border:1px solid #f6caca;border-radius:999px;padding:6px 10px;font-size:12px}
+    .overlay{position:fixed;inset:0;background:rgba(255,255,255,.96);display:grid;place-items:center;z-index:9999}
+    .overlay .box{text-align:center;color:#7c1111;font-weight:700;background:#fff;border:1px solid #f6caca;border-radius:14px;
+      padding:16px 18px;box-shadow:0 10px 24px rgba(0,0,0,.08)}
+    .spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(155,28,28,.2);
+      border-top-color:var(--brand);animation:spin .8s linear infinite;margin:0 auto 10px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Bottom nav (same as other pages) */
+    .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
+      display:flex;justify-content:space-around;padding:10px 8px 12px;z-index:10;backdrop-filter:blur(4px);
+      box-shadow:0 -6px 20px rgba(0,0,0,.06)}
+    .nav a{flex:1;text-align:center;text-decoration:none;color:#6b4a4a;font-size:12px;padding:6px 0;border-radius:16px;margin:0 4px;transition:.15s}
+    .nav .n-ico{display:block;font-size:20px;margin-bottom:4px}
+  </style>
+</head>
+<body>
+  <header>BAM • Task Record</header>
+
+  <!-- Full-page loading -->
+  <div id="pageLoading" class="overlay">
+    <div class="box">
+      <div class="spinner"></div>
+      <div>Loading your task history…</div>
+      <div class="muted" style="margin-top:6px">Grouped by day with totals.</div>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <section class="card">
+      <div class="summary">
+        <div class="chip" id="totalDays">Days: 0</div>
+        <div class="chip" id="totalTasks">Tasks: 0</div>
+        <div class="chip" id="totalEarned">Earned: UGX 0</div>
+      </div>
+      <div class="muted">Date • Tasks • Amount earned</div>
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <nav class="nav">
+    <a href="index.html"><span class="n-ico">🏠</span>Home</a>
+    <a href="tasks.html"><span class="n-ico">🗂️</span>Tasks</a>
+    <a href="levels.html"><span class="n-ico">🎖️</span>Levels</a>
+    <a href="profit.html"><span class="n-ico">💹</span>Profit</a>
+    <a href="account.html"><span class="n-ico">👤</span>Account</a>
+  </nav>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import {
+      getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc
+    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f",
+      measurementId: "G-W2DY026FXB"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id)=>document.getElementById(id);
+    const fmt = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
+    const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
+
+    async function loadDailySummary(uid){
+      // Read the most recent events and group by dateKey
+      const evCol = collection(db,"tasks",uid,"events");
+      const qy = query(evCol, orderBy("dateKey","desc"), orderBy("createdAt","desc"), limit(500));
+      const snap = await getDocs(qy);
+
+      const days = new Map(); // dateKey -> {count,total}
+      let allTasks = 0;
+      let allEarned = 0;
+
+      snap.forEach(d=>{
+        const v = d.data();
+        const dk = v.dateKey || "";
+        const amt = Number(v.amount || 0);
+        if (!dk) return;
+        if (!days.has(dk)) days.set(dk, { count:0, total:0 });
+        const row = days.get(dk);
+        row.count += 1;
+        row.total += amt;
+        allTasks += 1;
+        allEarned += amt;
+      });
+
+      // Render
+      const list = $("list");
+      list.innerHTML = "";
+      if (days.size === 0){
+        list.innerHTML = `<div class="muted" style="padding:12px 8px">No completed tasks yet.</div>`;
+      } else {
+        for (const [dk, stat] of days){
+          const line = document.createElement("div");
+          line.className = "row";
+          line.innerHTML = `
+            <div class="date">${dk}</div>
+            <div class="pill">${stat.count} tasks</div>
+            <div class="amt">${fmt(stat.total)}</div>
+          `;
+          list.appendChild(line);
+        }
+      }
+
+      // Summary chips
+      $("totalDays").textContent = `Days: ${days.size}`;
+      $("totalTasks").textContent = `Tasks: ${allTasks}`;
+      $("totalEarned").textContent = `Earned: ${fmt(allEarned)}`;
+    }
+
+    // Optional: ensure 'createdAt' ordering is available — fall back gracefully if missing
+    async function ensureAnyEvent(uid){
+      const ref = doc(db,"tasks",uid);
+      await getDoc(ref).catch(()=>{});
+    }
+
+    onAuthStateChanged(auth, async (user)=>{
+      if (!user){ location.href="login.html"; return; }
+      try{
+        await ensureAnyEvent(user.uid);
+        await loadDailySummary(user.uid);
+      } finally {
+        hideOverlay();
+      }
+    });
+  </script>
+</body>
+</html>
