@@ -132,18 +132,19 @@
         <div class="stat"><small>this week's income</small><b id="weekIncome">UGX 0</b></div>
         <div class="stat"><small>this month's income</small><b id="monthIncome">UGX 0</b></div>
         <div class="stat"><small>Commission from inviting</small><b id="inviteCommission">UGX 0</b></div>
+        <div class="stat"><small>Total withdrawn (paid)</small><b id="totalWithdrawn">UGX 0</b></div>
+        <div class="stat"><small>Days left (verified level)</small><b id="daysLeft">—</b></div>
       </div>
     </section>
 
-    <!-- Quick actions -->
+    <!-- Quick actions (exactly 6 buttons) -->
     <section class="grid-small" aria-label="Account actions">
       <a class="btn-mini" href="task-record.html"><div class="ico">📝</div><span>task record</span></a>
-      <a class="btn-mini" href="team-report.html"><div class="ico">📋</div><span>team report</span></a>
-      <a class="btn-mini" href="daily-report.html"><div class="ico">🗞️</div><span>daily report</span></a>
-
-      <a class="btn-mini" href="bill-record.html"><div class="ico">🧾</div><span>bill record</span></a>
+      <a class="btn-mini" href="addAdvert.html"><div class="ico">➕</div><span>Add Advert</span></a>
       <a class="btn-mini" href="position-salary.html"><div class="ico">🎖️</div><span>position salary</span></a>
       <a class="btn-mini" href="app-download.html"><div class="ico">⬇️</div><span>APP download</span></a>
+      <a class="btn-mini" href="team-report.html"><div class="ico">📋</div><span>team report</span></a>
+      <a class="btn-mini" href="handbook.html"><div class="ico">📘</div><span>Hand book</span></a>
     </section>
   </main>
 
@@ -202,7 +203,7 @@
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const monthStartKey = toKey(monthStart);
 
-    // helpers for referral timestamp windows
+    // helpers for timestamp windows
     function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
     function endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
 
@@ -233,19 +234,25 @@
       return { level, status };
     }
 
+    function findVerifiedLevel(data = {}) {
+      const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+      for (const code of order){
+        if (data[code]?.status === "verified"){
+          return { code, daysLeft: typeof data[code].daysLeft === "number" ? data[code].daysLeft : null };
+        }
+      }
+      return { code: null, daysLeft: null };
+    }
+
     /* ---------------- Sums: tasks/{uid}/events ----------------
        events fields used: amount (number), dateKey (YYYY-MM-DD)
     -----------------------------------------------------------*/
     async function sumTaskAmountBetween(uid, startKey, endKey){
-      // if startKey === endKey, you can pass same for both (inclusive)
       const evCol = collection(db,"tasks",uid,"events");
       const qy = query(evCol, where("dateKey", ">=", startKey), where("dateKey", "<=", endKey));
       const snap = await getDocs(qy);
       let total = 0;
-      snap.forEach(d=>{
-        const v = d.data();
-        total += Number(v.amount || 0);
-      });
+      snap.forEach(d=>{ total += Number(d.data().amount || 0); });
       return total;
     }
     async function sumTaskAmountAll(uid){
@@ -257,10 +264,7 @@
     }
 
     /* ---------------- Sums: referrals ----------------
-       referrals fields from verify.html: { toUid, createdAt, bonus }
-       We count bonuses where toUid == current user (the referrer).
-       “Verified referee” is already enforced by verify.html creating
-       the referral log at the time of verification.
+       referrals fields: { toUid, createdAt, bonus }
     ---------------------------------------------------*/
     async function sumReferralBonusBetween(uid, startDate, endDate){
       const refCol = collection(db,"referrals");
@@ -284,6 +288,47 @@
       return total;
     }
 
+    /* ---------------- Sums: spins ----------------
+       spins fields: { uid, amount, createdAt }
+    ---------------------------------------------------*/
+    async function sumSpinAmountBetween(uid, startDate, endDate){
+      const col = collection(db,"spins");
+      const qy = query(
+        col,
+        where("uid","==", uid),
+        where("createdAt",">=", startDate),
+        where("createdAt","<=", endDate)
+      );
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=> total += Number(d.data().amount || 0));
+      return total;
+    }
+    async function sumSpinAmountAll(uid){
+      const col = collection(db,"spins");
+      const qy = query(col, where("uid","==", uid));
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=> total += Number(d.data().amount || 0));
+      return total;
+    }
+
+    /* ---------------- Sums: withdraws (paid) ----------------
+       withdraws fields: { uid, status, netAmount, amount, paidAt }
+    -----------------------------------------------------------*/
+    async function sumWithdrawNetPaidAll(uid){
+      const col = collection(db,"withdraws");
+      const qy = query(col, where("uid","==", uid), where("status","==","paid"));
+      const snap = await getDocs(qy);
+      let total = 0;
+      snap.forEach(d=>{
+        const v = d.data();
+        const net = (typeof v.netAmount === "number") ? v.netAmount : (v.amount || 0);
+        total += Number(net || 0);
+      });
+      return total;
+    }
+
     /* ---------------- Load & Render ---------------- */
     async function loadUser(uid){
       const ref = doc(db,"users",uid);
@@ -297,37 +342,50 @@
       $("levelBadge").textContent  = `Level: ${level}`;
       $("statusBadge").textContent = `Status: ${status}`;
 
+      // verified level days left
+      const v = findVerifiedLevel(d);
+      $("daysLeft").textContent = (v.code ? (typeof v.daysLeft === "number" ? v.daysLeft : "—") : "—");
+
       $("mainWallet").textContent = fmt(d.mainWallet || 0);
       $("commWallet").textContent = fmt(d.commissionWallet || 0);
 
-      // ---- Compute stats (tasks + referrals) ----
+      // ---- Compute stats (tasks + referrals + spins) ----
       // TODAY
       const todayTasks = await sumTaskAmountBetween(uid, todayKey, todayKey);
       const todayRefs  = await sumReferralBonusBetween(uid, startOfDay(today), endOfDay(today));
-      $("todayIncome").textContent = fmt(todayTasks + todayRefs);
+      const todaySpins = await sumSpinAmountBetween(uid, startOfDay(today), endOfDay(today));
+      $("todayIncome").textContent = fmt(todayTasks + todayRefs + todaySpins);
 
       // YESTERDAY
       const yestTasks = await sumTaskAmountBetween(uid, yestKey, yestKey);
       const yestRefs  = await sumReferralBonusBetween(uid, startOfDay(yest), endOfDay(yest));
-      $("yesterdayIncome").textContent = fmt(yestTasks + yestRefs);
+      const yestSpins = await sumSpinAmountBetween(uid, startOfDay(yest), endOfDay(yest));
+      $("yesterdayIncome").textContent = fmt(yestTasks + yestRefs + yestSpins);
 
       // THIS WEEK (last 7 days incl. today)
       const weekTasks = await sumTaskAmountBetween(uid, weekStartKey, todayKey);
       const weekRefs  = await sumReferralBonusBetween(uid, startOfDay(weekStart), endOfDay(today));
-      $("weekIncome").textContent = fmt(weekTasks + weekRefs);
+      const weekSpins = await sumSpinAmountBetween(uid, startOfDay(weekStart), endOfDay(today));
+      $("weekIncome").textContent = fmt(weekTasks + weekRefs + weekSpins);
 
       // THIS MONTH
       const monthTasks = await sumTaskAmountBetween(uid, monthStartKey, todayKey);
       const monthRefs  = await sumReferralBonusBetween(uid, startOfDay(monthStart), endOfDay(today));
-      $("monthIncome").textContent = fmt(monthTasks + monthRefs);
+      const monthSpins = await sumSpinAmountBetween(uid, startOfDay(monthStart), endOfDay(today));
+      $("monthIncome").textContent = fmt(monthTasks + monthRefs + monthSpins);
 
       // TOTAL (lifetime)
       const totalTasks = await sumTaskAmountAll(uid);
       const totalRefs  = await sumReferralBonusAll(uid);
-      $("totalIncome").textContent = fmt(totalTasks + totalRefs);
+      const totalSpins = await sumSpinAmountAll(uid);
+      $("totalIncome").textContent = fmt(totalTasks + totalRefs + totalSpins);
 
-      // Commission from inviting (lifetime referral bonus)
+      // Commission from inviting (lifetime)
       $("inviteCommission").textContent = fmt(totalRefs);
+
+      // Total withdrawn (paid)
+      const withdrawn = await sumWithdrawNetPaidAll(uid);
+      $("totalWithdrawn").textContent = fmt(withdrawn);
     }
 
     async function handleRecharge(uid){
