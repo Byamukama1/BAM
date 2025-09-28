@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BAM • Position Salaries</title>
+  <style>
+    :root{--brand:#9b1c1c;--brand2:#7c1111;--gold:#fbbf24;--ink:#161617;--muted:#6b7280;--bd:#f0d4d4}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;background:#fff7f7;color:#111}
+    header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:14px 16px;font-weight:900}
+    .wrap{max-width:960px;margin:0 auto;padding:14px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);border:1px solid var(--bd);padding:14px;margin-bottom:12px}
+    table{width:100%;border-collapse:separate;border-spacing:0 6px}
+    th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#6b7280;text-align:left;padding:10px}
+    td{background:#fff;border:1px solid var(--bd);padding:12px;border-radius:10px}
+    .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:900;cursor:pointer}
+    .btn.primary{background:var(--gold);color:#111}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .muted{color:var(--muted)}
+    .grid{display:grid;gap:10px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-block;background:#fff5d6;border:1px solid #f3c74d;border-radius:999px;padding:4px 8px;font-size:12px}
+    .ok{color:#0b6d3a}.err{color:#7c1111}
+    .note{font-size:12px;color:#6b7280}
+    .h4{margin:8px 0 4px;font-weight:900}
+    .status{margin-top:8px}
+    .kvs{display:flex;gap:8px;flex-wrap:wrap}
+    .kvs span{background:#faf5f5;border:1px solid var(--bd);padding:4px 8px;border-radius:999px;font-size:12px}
+  </style>
+</head>
+<body>
+<header>Position Salaries</header>
+
+<main class="wrap">
+
+  <!-- Salary table -->
+  <section class="card">
+    <h3 class="h4">Positions & Salaries</h3>
+    <table aria-label="Positions and salaries">
+      <thead>
+        <tr>
+          <th>Position</th>
+          <th>Monthly Salary (UGX)</th>
+          <th>Requirement summary</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Adverts collector</td>
+          <td>210,000</td>
+          <td>20 direct verified + 10 referrals who paid for adverts</td>
+        </tr>
+        <tr>
+          <td>Intern guider</td>
+          <td>510,000</td>
+          <td>40 direct verified + 20 referrals who paid for adverts</td>
+        </tr>
+        <tr>
+          <td>Senior Team leader</td>
+          <td>1,050,000</td>
+          <td>200 direct verified + 50 referrals who paid for adverts</td>
+        </tr>
+        <tr>
+          <td>Regional supervisor</td>
+          <td>4,300,000</td>
+          <td>500 direct verified + 100 referrals who paid for adverts</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="row" style="margin-top:10px">
+      <button id="requestBtn" class="btn primary">REQUEST SALARY</button>
+      <span id="eligibilityTag" class="pill" style="display:none"></span>
+    </div>
+
+    <div id="youCounts" class="kvs" style="margin-top:8px;display:none"></div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <!-- Requirements explanation -->
+  <section class="card">
+    <h3 class="h4">How eligibility is checked</h3>
+    <ul class="muted" style="line-height:1.55;padding-left:18px;margin:8px 0">
+      <li><b>Direct verified users</b>: people you referred directly (your code) whose account shows any level (B1–B9) with status <b>verified</b>.</li>
+      <li><b>Referrals who paid for adverts</b>: unique users whose approved adverts were recorded as <b>paid</b> and tagged with you as <b>can be verified ones or interns</b>if there verified users, they must first complete a free bundle of 5 videos and then pay for other adverts</li>
+      <li>When you click <b>REQUEST SALARY</b>, if you meet a tier, contact manager to send you salary immediately<code>salaries</code> Keep pushing to hit salary requirement<b>one by one makes a bundle</b> </li>
+    </ul>
+    <p class="note">Tip: If you need guidance on how <b> to easily hit salary level</b> contact manager .</p>
+  </section>
+
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, collection, query, where, getDocs, doc, getDoc,
+    addDoc, serverTimestamp, orderBy, limit
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  /* ---------- Firebase ---------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+    authDomain: "bam1-3d3e5.firebaseapp.com",
+    projectId: "bam1-3d3e5",
+    storageBucket: "bam1-3d3e5.firebasestorage.app",
+    messagingSenderId: "649603741902",
+    appId: "1:649603741902:web:e67f20363f485c0948789f",
+    measurementId: "G-W2DY026FXB"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  const auth = getAuth(app);
+
+  /* ---------- UI helpers ---------- */
+  const $ = id => document.getElementById(id);
+  const statusEl = $("status");
+  const countsEl = $("youCounts");
+  const tagEl = $("eligibilityTag");
+  const show = (msg, ok=false)=>{ statusEl.textContent = msg; statusEl.className = "status " + (ok?"ok":"err"); };
+
+  /* ---------- Role thresholds ---------- */
+  const POSITIONS = [
+    { key:"regional_supervisor", label:"Regional supervisor", salary: 4300000, needVerified: 500, needPaid: 100 },
+    { key:"senior_team_leader", label:"Senior Team leader", salary: 1050000, needVerified: 200, needPaid: 50 },
+    { key:"intern_guider",      label:"Intern guider",      salary:  510000, needVerified:  40, needPaid: 20 },
+    { key:"adverts_collector",  label:"Adverts collector",  salary:  210000, needVerified:  20, needPaid: 10 },
+  ];
+  // evaluated top-down (highest first)
+
+  /* ---------- Verification helper (B1..B9 any verified) ---------- */
+  function isUserVerified(u){
+    const levels = ["B1","B2","B3","B4","B5","B6","B7","B8","B9"];
+    return levels.some(k => u?.[k]?.status === "verified");
+  }
+
+  let me=null;
+
+  async function countDirectVerified(uid){
+    // Users directly referred by me (assumes users.refA_uid points to me)
+    const q = query(collection(db,"users"), where("refA_uid","==", uid));
+    const snap = await getDocs(q);
+    let cnt = 0;
+    snap.forEach(d => { if (isUserVerified(d.data())) cnt++; });
+    return cnt;
+  }
+
+  async function countPaidAdvertReferrals(uid){
+    // Adverts tagged with me as referrerA that are paid (only paid ones get referrerA saved by the uploader)
+    // We count UNIQUE user IDs who have at least one paid advert.
+    const q = query(
+      collection(db,"adverts"),
+      where("referrerA_uid","==", uid),
+      where("paid","==", true)
+    );
+    const snap = await getDocs(q);
+    const uids = new Set();
+    snap.forEach(d => {
+      const a = d.data();
+      if (a.uid) uids.add(a.uid);
+      else uids.add("unknown:"+d.id); // fallback uniqueness
+    });
+    return uids.size;
+  }
+
+  function highestEligibleRole(vCount, pCount){
+    for (const pos of POSITIONS){
+      if (vCount >= pos.needVerified && pCount >= pos.needPaid) return pos;
+    }
+    return null;
+  }
+
+  async function alreadyPending(uid, roleKey){
+    const q = query(
+      collection(db,"salaries"),
+      where("uid","==", uid),
+      where("roleKey","==", roleKey),
+      where("status","==","pending"),
+      orderBy("createdAt","desc"),
+      limit(1)
+    );
+    const s = await getDocs(q);
+    return !s.empty;
+  }
+
+  async function refreshCountsAndEligibility(){
+    countsEl.style.display = "none";
+    tagEl.style.display = "none";
+    show("Checking eligibility…");
+
+    const vCount = await countDirectVerified(me.uid);
+    const pCount = await countPaidAdvertReferrals(me.uid);
+
+    countsEl.innerHTML = `
+      <span>Direct verified: <b>${vCount}</b></span>
+      <span>Referrals who paid: <b>${pCount}</b></span>
+    `;
+    countsEl.style.display = "flex";
+
+    const role = highestEligibleRole(vCount, pCount);
+    if (role){
+      tagEl.textContent = `Eligible for: ${role.label} • UGX ${role.salary.toLocaleString("en-UG")}`;
+      tagEl.style.display = "inline-block";
+      show("You are eligible. Click REQUEST SALARY to submit for approval.", true);
+      $("requestBtn").disabled = false;
+      $("requestBtn").dataset.roleKey = role.key;
+    }else{
+      show("Not yet eligible. See requirements above.", false);
+      $("requestBtn").disabled = true;
+      $("requestBtn").dataset.roleKey = "";
+    }
+  }
+
+  $("requestBtn").addEventListener("click", async ()=>{
+    const roleKey = $("requestBtn").dataset.roleKey;
+    if (!roleKey){ show("You’re not eligible yet."); return; }
+
+    const role = POSITIONS.find(r => r.key === roleKey);
+    if (!role){ show("Role not found."); return; }
+
+    // Recompute counts at click time (avoid stale)
+    const vCount = await countDirectVerified(me.uid);
+    const pCount = await countPaidAdvertReferrals(me.uid);
+    const stillEligible = highestEligibleRole(vCount, pCount)?.key === roleKey;
+
+    if (!stillEligible){ show("Eligibility changed. Please try again.", false); await refreshCountsAndEligibility(); return; }
+
+    if (await alreadyPending(me.uid, roleKey)){
+      show("You already have a pending request for this role.", false);
+      return;
+    }
+
+    try{
+      await addDoc(collection(db,"salaries"), {
+        uid: me.uid,
+        roleKey: role.key,
+        roleLabel: role.label,
+        salaryUGX: role.salary,
+        metrics: {
+          directVerified: vCount,
+          paidAdvertReferrals: pCount
+        },
+        status: "pending",
+        createdAt: serverTimestamp()
+      });
+      show("Salary request submitted and is pending approval. ✅", true);
+    }catch(err){
+      show(err.message || "Failed to submit request.");
+    }
+  });
+
+  onAuthStateChanged(auth, async (user)=>{
+    if (!user){ location.href = "login.html"; return; }
+    const uref = doc(db,"users", user.uid);
+    const usnap = await getDoc(uref);
+    me = usnap.exists() ? { uid:user.uid, ...usnap.data() } : { uid:user.uid };
+
+    await refreshCountsAndEligibility();
+  });
+</script>
+</body>
+</html>
