@@ -17,16 +17,16 @@
     .btn{appearance:none;border:none;border-radius:12px;padding:12px 16px;font-weight:900;cursor:pointer}
     .btn.primary{background:var(--gold);color:#111}
     .btn[disabled]{opacity:.6;cursor:not-allowed}
-    .muted{color:var(--muted)}
-    .grid{display:grid;gap:10px}
+    .muted{color:#6b7280}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .pill{display:inline-block;background:#fff5d6;border:1px solid #f3c74d;border-radius:999px;padding:4px 8px;font-size:12px}
     .ok{color:#0b6d3a}.err{color:#7c1111}
-    .note{font-size:12px;color:#6b7280}
-    .h4{margin:8px 0 4px;font-weight:900}
     .status{margin-top:8px}
     .kvs{display:flex;gap:8px;flex-wrap:wrap}
     .kvs span{background:#faf5f5;border:1px solid var(--bd);padding:4px 8px;border-radius:999px;font-size:12px}
+    .h4{margin:8px 0 4px;font-weight:900}
+    ul.req{line-height:1.55;padding-left:18px;margin:8px 0}
+    ul.req li{margin:4px 0}
   </style>
 </head>
 <body>
@@ -34,7 +34,7 @@
 
 <main class="wrap">
 
-  <!-- Salary table -->
+  <!-- Salary table (no requirements text inside) -->
   <section class="card">
     <h3 class="h4">Positions & Salaries</h3>
     <table aria-label="Positions and salaries">
@@ -42,29 +42,24 @@
         <tr>
           <th>Position</th>
           <th>Monthly Salary (UGX)</th>
-          <th>Requirement summary</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Adverts collector</td>
           <td>210,000</td>
-          <td>20 direct verified + 10 referrals who paid for adverts</td>
         </tr>
         <tr>
           <td>Intern guider</td>
           <td>510,000</td>
-          <td>40 direct verified + 20 referrals who paid for adverts</td>
         </tr>
         <tr>
           <td>Senior Team leader</td>
           <td>1,050,000</td>
-          <td>200 direct verified + 50 referrals who paid for adverts</td>
         </tr>
         <tr>
           <td>Regional supervisor</td>
           <td>4,300,000</td>
-          <td>500 direct verified + 100 referrals who paid for adverts</td>
         </tr>
       </tbody>
     </table>
@@ -78,15 +73,26 @@
     <div id="status" class="status"></div>
   </section>
 
-  <!-- Requirements explanation -->
+  <!-- Requirements (moved here) -->
+  <section class="card">
+    <h3 class="h4">Requirements</h3>
+    <ul class="req muted">
+      <li><b>Adverts collector</b> — <b>20</b> direct verified users & <b>10</b> referrals who paid for adverts.</li>
+      <li><b>Intern guider</b> — <b>40</b> direct verified users & <b>20</b> referrals who paid for adverts.</li>
+      <li><b>Senior Team leader</b> — <b>200</b> direct verified users & <b>50</b> referrals who paid for adverts.</li>
+      <li><b>Regional supervisor</b> — <b>500</b> direct verified users & <b>100</b> referrals who paid for adverts.</li>
+    </ul>
+  </section>
+
+  <!-- How eligibility is checked -->
   <section class="card">
     <h3 class="h4">How eligibility is checked</h3>
     <ul class="muted" style="line-height:1.55;padding-left:18px;margin:8px 0">
-      <li><b>Direct verified users</b>: people you referred directly (your code) whose account shows any level (B1–B9) with status <b>verified</b>.</li>
-      <li><b>Referrals who paid for adverts</b>: unique users whose approved adverts were recorded as <b>paid</b> and tagged with you as <b>can be verified ones or interns</b>if there verified users, they must first complete a free bundle of 5 videos and then pay for other adverts</li>
-      <li>When you click <b>REQUEST SALARY</b>, if you meet a tier, contact manager to send you salary immediately<code>salaries</code> Keep pushing to hit salary requirement<b>one by one makes a bundle</b> </li>
+      <li><b>Direct verified users</b> are people you referred (your code) whose account shows any level (B1–B9) with status <b>verified</b>.</li>
+      <li><b>Referrals who paid for adverts</b> are unique users with at least one <b>approved & paid</b> advert in <code>adverts</code> that is tagged with your <b>referrerA_uid</b>.</li>
+      <li>We always award the <b>highest</b> role you qualify for. Clicking <b>REQUEST SALARY</b> creates a record in <code>salaries</code> with <b>pending</b> status for admin review.</li>
     </ul>
-    <p class="note">Tip: If you need guidance on how <b> to easily hit salary level</b> contact manager .</p>
+    <p class="muted">Tip: If you need guidance on how to reach a salary level, contact your manager.</p>
   </section>
 
 </main>
@@ -127,7 +133,6 @@
     { key:"intern_guider",      label:"Intern guider",      salary:  510000, needVerified:  40, needPaid: 20 },
     { key:"adverts_collector",  label:"Adverts collector",  salary:  210000, needVerified:  20, needPaid: 10 },
   ];
-  // evaluated top-down (highest first)
 
   /* ---------- Verification helper (B1..B9 any verified) ---------- */
   function isUserVerified(u){
@@ -138,7 +143,6 @@
   let me=null;
 
   async function countDirectVerified(uid){
-    // Users directly referred by me (assumes users.refA_uid points to me)
     const q = query(collection(db,"users"), where("refA_uid","==", uid));
     const snap = await getDocs(q);
     let cnt = 0;
@@ -147,8 +151,6 @@
   }
 
   async function countPaidAdvertReferrals(uid){
-    // Adverts tagged with me as referrerA that are paid (only paid ones get referrerA saved by the uploader)
-    // We count UNIQUE user IDs who have at least one paid advert.
     const q = query(
       collection(db,"adverts"),
       where("referrerA_uid","==", uid),
@@ -159,7 +161,7 @@
     snap.forEach(d => {
       const a = d.data();
       if (a.uid) uids.add(a.uid);
-      else uids.add("unknown:"+d.id); // fallback uniqueness
+      else uids.add("unknown:"+d.id);
     });
     return uids.size;
   }
@@ -219,7 +221,6 @@
     const role = POSITIONS.find(r => r.key === roleKey);
     if (!role){ show("Role not found."); return; }
 
-    // Recompute counts at click time (avoid stale)
     const vCount = await countDirectVerified(me.uid);
     const pCount = await countPaidAdvertReferrals(me.uid);
     const stillEligible = highestEligibleRole(vCount, pCount)?.key === roleKey;
@@ -237,10 +238,7 @@
         roleKey: role.key,
         roleLabel: role.label,
         salaryUGX: role.salary,
-        metrics: {
-          directVerified: vCount,
-          paidAdvertReferrals: pCount
-        },
+        metrics: { directVerified: vCount, paidAdvertReferrals: pCount },
         status: "pending",
         createdAt: serverTimestamp()
       });
@@ -255,7 +253,6 @@
     const uref = doc(db,"users", user.uid);
     const usnap = await getDoc(uref);
     me = usnap.exists() ? { uid:user.uid, ...usnap.data() } : { uid:user.uid };
-
     await refreshCountsAndEligibility();
   });
 </script>
