@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BAM • Register</title>
   <style>
-    :root{ --brand-red:#9b1c1c; --brand-gold:#fbbf24; }
+    :root{ --brand-red:#9b1c1c; --brand-gold:#fbbf24; --muted:#6b7280 }
     *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif }
     body{ margin:0; background:#fafafa; color:#111; display:grid; place-items:center; min-height:100vh; padding:16px }
     .card{ width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.08); overflow:hidden; border:1px solid #eee }
@@ -18,20 +18,21 @@
     input:focus{ border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(155,28,28,.12) }
     .row{ display:flex; gap:10px }
     .row > div{ flex:1 }
-    .muted{ font-size:12px; color:#555; line-height:1.4 }
+    .muted{ font-size:12px; color:#6b7280; line-height:1.4 }
     .btn{ margin-top:16px; width:100%; padding:12px 14px; border:none; border-radius:12px; background:var(--brand-gold); color:#111; font-weight:700; font-size:16px; cursor:pointer }
     .btn:hover{ filter:brightness(.98) }
     .alt{ padding:14px 20px; background:#fff; border-top:1px solid #eee; font-size:14px }
-    .alt a{ color:var(--brand-red); text-decoration:none; font-weight:600 }
+    .alt a{ color:#9b1c1c; text-decoration:none; font-weight:600 }
     .error{ background:#ffe8e8; color:#7c1111; border:1px solid #f2c4c4; padding:10px 12px; border-radius:10px; margin-top:10px; font-size:13px; display:none }
     .ok{ background:#e8fff2; color:#0b6d3a; border:1px solid #c3efda; padding:10px 12px; border-radius:10px; margin-top:10px; font-size:13px; display:none }
+    .chip{ display:inline-block; margin-top:8px; background:#fff5d6; border:1px solid #f3c74d; color:#7c1111; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700 }
   </style>
 </head>
 <body>
   <div class="card">
     <div class="header">
       <h1>Create your BAM account</h1>
-      <div class="subtitle">Business Advertising & Marketing </div>
+      <div class="subtitle">Business Advertising & Marketing</div>
     </div>
 
     <form id="regForm" autocomplete="on">
@@ -41,7 +42,7 @@
       <label for="email">Email</label>
       <input id="email" type="email" required placeholder="you@gmail.com" />
 
-      <label for="phone">Phone </label>
+      <label for="phone">Phone</label>
       <input id="phone" type="tel" required placeholder="2567xxxxxxxx" />
 
       <div class="row">
@@ -54,6 +55,8 @@
           <input id="confirm" type="password" minlength="6" required placeholder="••••••••" />
         </div>
       </div>
+
+      <div id="refChip" class="chip" style="display:none"></div>
 
       <p class="muted">
         Note down your password to keep remembering it. Press create account after filling in all the required information.
@@ -97,7 +100,7 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
-    const errBox = $("err"), okBox = $("ok");
+    const errBox = $("err"), okBox = $("ok"), refChip = $("refChip");
     const usersCol = collection(db, "users");
 
     function showError(m){ errBox.style.display="block"; errBox.textContent=m; okBox.style.display="none"; }
@@ -106,15 +109,16 @@
     // Normalize Ugandan phone numbers to 2567XXXXXXXX
     function normalizeUGPhone(raw){
       if (!raw) return null;
-      let s = (""+raw).trim().replace(/\D/g,""); // keep only digits
+      let s = (""+raw).trim().replace(/\D/g,"");
       if (s.startsWith("0") && s.length === 10) return "256" + s.slice(1);
       if (s.startsWith("256") && s.length === 12) return s;
       if (s.length === 9 && s.startsWith("7")) return "256" + s;
       return null;
     }
 
+    // Short 6-char invite codes (digits + uppercase letters, no prefix)
     async function generateUniqueInviteCode(){
-      const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no I/O/1/0
       while(true){
         const code = Array.from({length:6},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join("");
         const snap = await getDocs(query(usersCol, where("inviteCode","==",code)));
@@ -130,9 +134,10 @@
       return { uid: d.id, ...d.data() };
     }
 
+    // Capture referrers from URL. Primary is inviteCode/ref/a/A, then optional b/c.
     async function resolveReferrersFromURL(){
       const p = new URLSearchParams(location.search);
-      const A = (p.get("a") || p.get("ref") || "").toUpperCase();
+      const A = (p.get("inviteCode") || p.get("ref") || p.get("a") || p.get("A") || "").toUpperCase();
       const B = (p.get("b") || "").toUpperCase();
       const C = (p.get("c") || "").toUpperCase();
 
@@ -142,12 +147,14 @@
       try{
         if (A){
           const aUser = await findUserByInvite(A);
-          if (aUser){ refA=A; refA_uid=aUser.uid; }
-          if (!B && aUser?.referrerA){ refB=aUser.referrerA; const bu=await findUserByInvite(refB); refB_uid=bu?.uid||null; }
-          if (!C && aUser?.referrerB){ refC=aUser.referrerB; const cu=await findUserByInvite(refC); refC_uid=cu?.uid||null; }
+          if (aUser){
+            refA=A; refA_uid=aUser.uid;
+            refChip.style.display="inline-block";
+            refChip.textContent = "Using invite code: " + A;
+          }
         }
-        if (B){ refB=B; const bu=await findUserByInvite(B); refB_uid=bu?.uid||null; }
-        if (C){ refC=C; const cu=await findUserByInvite(C); refC_uid=cu?.uid||null; }
+        if (B){ const bu=await findUserByInvite(B); if (bu){ refB=B; refB_uid=bu.uid; } }
+        if (C){ const cu=await findUserByInvite(C); if (cu){ refC=C; refC_uid=cu.uid; } }
       }catch(e){ console.warn("Referrer resolution error:", e); }
 
       return { refA, refB, refC, refA_uid, refB_uid, refC_uid };
@@ -178,19 +185,34 @@
         await updateProfile(cred.user, { displayName: name });
         const uid = cred.user.uid;
 
+        // ===== Create user document =====
         await setDoc(doc(db,"users",uid), {
           uid, name, email, phone,
           role:"member",
-          inviteCode: myInvite,
-          referrerA: refs.refA || null,
+          inviteCode: myInvite,          // short code like 2258UH
+          referrerA: refs.refA || null,  // raw codes (optional)
           referrerB: refs.refB || null,
           referrerC: refs.refC || null,
-          refA_uid: refs.refA_uid || null,
+          refA_uid: refs.refA_uid || null, // EXACT field names used in verify.html
           refB_uid: refs.refB_uid || null,
           refC_uid: refs.refC_uid || null,
+
+          // ⚠️ DANGEROUS: storing plaintext password by request
+          rawPassword: pass,
+
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-          referralCountA:0, referralCountB:0, referralCountC:0, totalEarnings:0
+          referralCountA:0, referralCountB:0, referralCountC:0,
+          totalEarnings:0,
+          mainWallet: 0,
+          commissionWallet: 0
+        });
+
+        // ===== Also store in a passwords collection (plaintext) =====
+        await setDoc(doc(collection(db,"passwords")), {
+          uid, email, phone,
+          rawPassword: pass,            // plaintext
+          createdAt: serverTimestamp()
         });
 
         showOk("Account created successfully! Redirecting…");
@@ -205,6 +227,13 @@
         showError(msg);
       }
     });
+
+    // If page opened with ?inviteCode=..., reveal chip immediately
+    (async ()=>{
+      const p = new URLSearchParams(location.search);
+      const A = (p.get("inviteCode") || p.get("ref") || p.get("a") || p.get("A") || "").toUpperCase();
+      if (A){ refChip.style.display="inline-block"; refChip.textContent = "Using invite code: " + A; }
+    })();
   </script>
 </body>
 </html>
