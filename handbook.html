@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BAM • Handbook</title>
+  <meta name="color-scheme" content="light only" />
+  <style>
+    :root{
+      --ink:#161617; --muted:#6b7280;
+      --brand:#9b1c1c; --brand2:#7c1111; --gold:#fbbf24;
+      --bd:#e5e7eb; --page:#ffffff; --bg:#faf7f7;
+      --maxw:900px;
+    }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font: 15.5px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;
+    }
+
+    /* Top bar (hidden on print) */
+    .top{
+      position:sticky; top:0; z-index:30;
+      background:linear-gradient(135deg,var(--brand),var(--brand2));
+      color:#fff; padding:12px 14px;
+      box-shadow:0 6px 18px rgba(0,0,0,.08);
+    }
+    .top .wrap{ display:flex; gap:10px; align-items:center; max-width:var(--maxw); margin:0 auto }
+    .title{ font-weight:900; letter-spacing:.2px }
+    .spacer{ flex:1 }
+    .btn{
+      appearance:none; border:1px solid rgba(255,255,255,.3);
+      background:rgba(255,255,255,.12); color:#fff;
+      border-radius:10px; padding:8px 12px; font-weight:800; cursor:pointer;
+    }
+    .btn:hover{ background:rgba(255,255,255,.2) }
+
+    /* Page container */
+    .paper{ max-width:var(--maxw); margin:14px auto; padding:0 14px }
+    .card{
+      background:var(--page); border:1px solid var(--bd);
+      border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.06);
+      overflow:hidden;
+    }
+
+    /* Cover */
+    .cover{
+      padding:28px 22px 18px;
+      background:
+        radial-gradient(160% 120% at -10% -10%, #fbeceb 0%, transparent 60%),
+        radial-gradient(160% 120% at 110% -10%, #f6d8d5 0%, transparent 60%),
+        linear-gradient(180deg, #fff 0%, #fbeceb 30%, #f6d8d5 85%, #f2c4bf 100%);
+      border-bottom:1px solid var(--bd);
+    }
+    .cover h1{ margin:0; font-size:26px; letter-spacing:.4px }
+    .sub{ color:#5b5b5b; margin-top:6px; font-weight:600 }
+
+    /* Entry list */
+    .content{ padding:18px 18px 24px }
+    .entry{ page-break-inside:avoid; margin:0 0 18px 0; padding:0 0 18px 0; border-bottom:1px dashed #eee }
+    .entry:last-child{ border-bottom:none; margin-bottom:0; padding-bottom:0 }
+
+    /* Text entry */
+    .text{
+      font-size:16px; line-height:1.75; color:#202020;
+      text-wrap:pretty; hyphens:auto;
+    }
+    .text p{ margin:0 0 12px }
+    .text ul{ margin:6px 0 12px 18px; padding:0 }
+    .text li{ margin:4px 0 }
+    .caption{ font-size:12px; color:var(--muted); margin-top:6px }
+
+    /* Image entry */
+    .image-wrap{
+      border:1px solid #f1f5f9; background:#fafafa; border-radius:12px; overflow:hidden;
+    }
+    .image-wrap img{ width:100%; height:auto; display:block }
+
+    /* Print styles */
+    @media print{
+      @page{ size:A4; margin:14mm 12mm }
+      body{ background:#fff }
+      .top{ display:none !important }
+      .paper{ margin:0; padding:0 }
+      .card{ border:none; border-radius:0; box-shadow:none }
+      .entry{ border-bottom:none; margin:0 0 10mm 0; padding:0 0 6mm 0 }
+      a[href]:after{ content:"" }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sticky toolbar (not printed) -->
+  <div class="top">
+    <div class="wrap">
+      <div class="title">Handbook</div>
+      <div class="spacer"></div>
+      <button class="btn" id="reloadBtn" title="Reload content">Reload</button>
+      <button class="btn" id="printBtn">Export to PDF</button>
+    </div>
+  </div>
+
+  <!-- Paper -->
+  <div class="paper">
+    <div class="card">
+      <!-- Cover -->
+      <div class="cover">
+        <h1>Handbook</h1>
+        <div class="sub">Use the handbook to understand and also explain it to others</div>
+      </div>
+
+      <!-- Body -->
+      <div class="content" id="content">
+        <div id="loading" class="text" style="color:#6b7280">Loading handbook…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase + logic -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    /* ---------- Firebase ---------- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    const $ = id => document.getElementById(id);
+
+    // Plain-text -> rich HTML (paras + simple bullet lists)
+    function richify(txt){
+      if (!txt) return "";
+      const lines = String(txt).replace(/\r\n?/g,"\n").split("\n");
+      const blocks=[]; let buf=[]; let list=null;
+
+      const flushPara = ()=>{
+        if (buf.length){ blocks.push(`<p>${escapeHtml(buf.join(" "))}</p>`); buf=[]; }
+      };
+      const flushList = ()=>{
+        if (list && list.length){ blocks.push("<ul>"+list.map(li=>`<li>${escapeHtml(li)}</li>`).join("")+"</ul>"); list=null; }
+      };
+
+      for (const raw of lines){
+        const line = raw.trim();
+        if (!line){ flushPara(); flushList(); continue; }
+        if (/^[-*]\s+/.test(line)){ flushPara(); (list ||= []).push(line.replace(/^[-*]\s+/, "")); }
+        else { flushList(); buf.push(line); }
+      }
+      flushPara(); flushList();
+      return blocks.join("\n");
+    }
+    const escapeHtml = s =>
+      s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+       .replaceAll('"',"&quot;").replaceAll("'","&#39;");
+
+    function entryHTML(d){
+      const e  = d.data();
+      if (e.type === "image"){
+        return `
+          <section class="entry" data-id="${d.id}">
+            <div class="image-wrap">
+              <img src="${e.url}" alt="Handbook image">
+            </div>
+            ${e.caption ? `<div class="caption">${escapeHtml(e.caption)}</div>` : ""}
+          </section>
+        `;
+      }
+      return `
+        <section class="entry" data-id="${d.id}">
+          <article class="text">
+            ${richify(e.text || "")}
+          </article>
+        </section>
+      `;
+    }
+
+    async function load(){
+      const content = $("content");
+      content.innerHTML = `<div id="loading" class="text" style="color:#6b7280">Loading handbook…</div>`;
+      try{
+        const snap = await getDocs(query(collection(db,"handbook"), orderBy("order","asc")));
+        if (snap.empty){
+          content.innerHTML = `<div class="text" style="color:#6b7280">No handbook entries yet.</div>`;
+          return;
+        }
+        const parts=[];
+        snap.forEach(doc => parts.push(entryHTML(doc)));
+        content.innerHTML = parts.join("\n");
+      }catch(err){
+        console.error(err);
+        content.innerHTML = `<div class="text" style="color:#7c1111">Failed to load handbook. ${err?.message||""}</div>`;
+      }
+    }
+
+    $("printBtn").addEventListener("click", ()=> window.print());
+    $("reloadBtn").addEventListener("click", load);
+
+    // initial load
+    load();
+  </script>
+</body>
+</html>
