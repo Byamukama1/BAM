@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BAM • Eversend Payment</title>
+  <title>Eversend Payment</title>
   <style>
     :root{ --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24; --ink:#161617; --muted:#6b7280; }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
@@ -17,7 +17,6 @@
     header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;padding:14px 16px;font-weight:900}
     .wrap{max-width:900px;margin:0 auto;padding:14px}
     .card{background:#fff;border-radius:16px;box-shadow:0 12px 28px rgba(0,0,0,.06);padding:16px}
-
     .title{font-weight:900;margin:0 0 6px}
     .muted{color:var(--muted);font-size:13px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -29,24 +28,21 @@
     .small{font-size:12px;color:#6b7280}
     .banner{background:#fff3f3;border:1px solid #f6caca;color:#7c1111;padding:10px 12px;border-radius:12px;margin:10px 0;font-size:14px}
     .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46}
-
-    /* details + upload */
     .kv{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
     .kv .box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:8px 10px;font-weight:800}
-    .upload{border:1px dashed #e5e7eb;border-radius:12px;padding:12px;background:#fff}
-    .preview{margin-top:10px;display:none}
-    .preview img{max-width:100%;border-radius:12px;border:1px solid #e5e7eb}
+    textarea{width:100%;min-height:120px;border:1px solid #e2e8f0;border-radius:12px;padding:10px;font-size:14px;outline:none;resize:vertical;background:#fff}
+    textarea:focus{border-color:#9b1c1c;box-shadow:0 0 0 3px rgba(155,28,28,.12)}
   </style>
 </head>
 <body>
-  <header>BAM • Eversend Payment</header>
+  <header> Eversend Payment</header>
 
   <main class="wrap">
     <section class="card">
       <h2 class="title">Use Eversend to pay</h2>
-      <p class="muted">Follow the steps carefully. After paying on Eversend, upload your mobile money receipt here and press <b>Successful</b>.</p>
+      <p class="muted">After paying on Eversend, <b>copy the MTN/Airtel message</b> you received and paste it below. Then press <b>Successful</b>.</p>
 
-      <!-- visible deposit details (no id/status shown) -->
+      <!-- visible deposit details -->
       <div class="kv">
         <div class="box">Phone: <span id="depPhone">—</span></div>
         <div class="box">Amount: <span id="depAmount">—</span></div>
@@ -55,46 +51,34 @@
       <!-- EVERSEND button -->
       <div class="row" style="margin-top:6px">
         <button id="openEversend" class="btn gold">click here 👉🏿 TO USE EVERSEND TO PAY</button>
+        <span class="small">(You’ll complete the payment there, copy message and then return here.)</span>
       </div>
 
       <div class="hr"></div>
 
-      <!-- Upload screenshot -->
-      <h3 class="title" style="font-size:16px">Upload GTBANK payment screenshot</h3>
-      <div class="upload">
-        <input id="fileInput" type="file" accept="image/*" />
-        <div class="preview" id="previewWrap">
-          <p class="small">Preview:</p>
-          <img id="previewImg" alt="Receipt preview" />
-        </div>
-        <p class="small" style="margin-top:8px">CLICK here to Upload screenshot</p>
-      </div>
+      <!-- Paste message (locks after first paste/typing) -->
+      <h3 class="title" style="font-size:16px">Paste your MTN/Airtel payment message</h3>
+      <textarea id="sms" placeholder="Paste the full SMS here…"></textarea>
 
       <div id="statusArea"></div>
 
-      <!-- Mark successful (disabled until a file is chosen) -->
+      <!-- Only Successful -->
       <div class="row" style="margin-top:12px">
         <button id="markSuccess" class="btn red" disabled>Successful</button>
       </div>
+
       <p class="banner" style="margin-top:8px">
-        ⚠️ <b>Important:</b> Clicking <b>Successful</b> before you finish the Eversend payment (PIN entered) may lead to <b>account banning</b>.
+        ⚠️ Submitting a fake message will be flagged and can lead to account restrictions.
       </p>
 
       <div class="hr"></div>
 
-      <!-- Instructions -->
-      <h3 class="title" style="font-size:16px">Instructions</h3>
+      <!-- Quick guide -->
+      <h3 class="title" style="font-size:16px">Quick steps</h3>
       <ol class="small" style="line-height:1.55;padding-left:18px">
-        <li>Click <b>USE EVERSEND TO PAY</b>.</li>
-        <li>Enter the <b>amount</b> you want to deposit.</li>
-        <li>Fill in your <b>names</b>.</li>
-        <li>Add a note e.g. <b>Recharge BAM</b>.</li>
-        <li>Click <b>Continue</b>.</li>
-        <li>Enter the <b>SAME NUMBER</b> you selected earlier (WhatsApp number to receive the OTP).</li>
-        <li>Copy the <b>OTP</b> from WhatsApp and paste it.</li>
-        <li>Click <b>Make transaction</b> and enter your <b>PIN</b>.</li>
-        <li>After PIN, take a <b>screenshot</b> of the MTN/Airtel payment message(GT BANK).</li>
-        <li>Upload the screenshot above and click <b>Successful</b>.</li>
+        <li>Click <b>USE EVERSEND TO PAY</b> and complete payment.</li>
+        <li>Copy the <b>MTN/Airtel message</b> you received.</li>
+        <li>Paste it here and press <b>Successful</b>.</li>
       </ol>
     </section>
   </main>
@@ -103,8 +87,8 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import {
-      getFirestore, doc, getDoc, updateDoc, runTransaction,
-      serverTimestamp, collection, query, where, orderBy, limit, getDocs
+      getFirestore, doc, getDoc, runTransaction, serverTimestamp,
+      collection, query, where, orderBy, limit, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     /* ---------------- Firebase ---------------- */
@@ -121,32 +105,23 @@
     const db  = getFirestore(app);
     const auth = getAuth(app);
 
-    /* ---------------- Cloudinary (unsigned) ---------------- */
-    // Replace with your credentials if different
-    const cloudinaryConfig = {
-      cloudName: 'dp81zzxlh',
-      uploadPreset: 'Unsigned upload'
-    };
-
     /* ---------------- Helpers ---------------- */
     const $ = id=>document.getElementById(id);
     const show = (m, ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${m}</div>`; };
     const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
     const EVERSEND_LINK = "https://eversend.me/oblinks";
 
-    let currentUser=null, depId=null, depData=null, selectedFile=null;
+    let currentUser=null, depId=null, depData=null, locked=false;
 
     function getParam(name){ return new URLSearchParams(location.search).get(name) || ""; }
 
     async function pickDepositToUse(){
-      // 1) If ?deposit= provided, use it
       const qId = getParam("deposit");
       if (qId) {
         const ref = doc(db,"deposits",qId);
         const snap = await getDoc(ref);
         if (snap.exists()) return { id:qId, data:snap.data() };
       }
-      // 2) Otherwise: most recent pending for this user
       const q = query(
         collection(db,"deposits"),
         where("uid","==", currentUser.uid),
@@ -164,58 +139,138 @@
 
     async function loadDeposit(){
       const picked = await pickDepositToUse();
-      if (!picked){ show("No pending deposit found. Please start again from Recharge.", false); return; }
-
+      if (!picked){ show("No pending deposit found. Please start again from Recharge."); return; }
       depId = picked.id;
       depData = picked.data;
-
       if (depData.uid !== currentUser.uid){ show("This deposit does not belong to your account."); return; }
-
       $("depPhone").textContent  = depData.phone || "—";
       $("depAmount").textContent = UGX(depData.amount || 0);
     }
 
-    // Open Eversend (no link text displayed)
+    // Open Eversend
     $("openEversend").addEventListener("click", ()=>{
-      const w = window.open(EVERSEND_LINK, "_blank", "noopener");
-      if(!w){ show("You will be taken to eversend payment form."); }
+      window.open(EVERSEND_LINK, "_blank", "noopener");
     });
 
-    // Screenshot picker -> enable Successful
-    $("fileInput").addEventListener("change", (e)=>{
-      selectedFile = e.target.files?.[0] || null;
-      if (selectedFile){
-        const url = URL.createObjectURL(selectedFile);
-        $("previewImg").src = url;
-        $("previewWrap").style.display = "block";
-        $("markSuccess").disabled = false;   // allow proceed only after a file is chosen
-      } else {
-        $("previewWrap").style.display = "none";
-        $("markSuccess").disabled = true;
+    /* ---------------- Parsers (silent) ---------------- */
+    // MTN example
+    const reMTN = /(?:Y'?ello.*?\s)?(?<counterparty>GUARANTY\s+TRUST\s+BANK.*?|GT\s*BANK.*?|GUARANTY\s+TRUST\s+BANK.*)\s+has\s+deducted\s+(?<currency>[A-Z]{3})\s*(?<amount>[\d,]+)\s+.*?\bfee\s+of\s+(?<feeCurrency>[A-Z]{3})\s*(?<fee>[\d,]+)\s+Transaction\s+ID:\s*(?<txid>\d+).*?New\s+balance\s+is:\s*(?<balCurrency>[A-Z]{3})\s*(?<balance>[\d,]+)\b/i;
+
+    // Airtel example
+    const reAirtel = /PAID\.TID\s+(?<txid>\d+)\.\s*(?<currency>[A-Z]{3})\s*(?<amount>[\d,]+)\s+to\s+(?<counterparty>.+?)\s+Charge\s+(?<feeCurrency>[A-Z]{3})\s*(?<fee>[\d,]+)\.\s*Bal\s+(?<balCurrency>[A-Z]{3})\s*(?<balance>[\d,]+)\.\s*(?<date>\d{1,2}-[A-Za-z]+-\d{4})\s+(?<time>\d{1,2}:\d{2})/i;
+
+    const num = s => Number(String(s||"").replace(/,/g,""));
+
+    function parseMessage(text){
+      const t = (text||"").trim();
+      if (!t) return null;
+
+      const mtn = reMTN.exec(t);
+      if (mtn){
+        return {
+          network: "MTN",
+          rawMessage: t,
+          txid: mtn.groups.txid,
+          currency: mtn.groups.currency,
+          amount_paid: num(mtn.groups.amount),
+          counterparty: mtn.groups.counterparty?.trim(),
+          fee_currency: mtn.groups.feeCurrency,
+          charge: num(mtn.groups.fee),
+          new_balance_currency: mtn.groups.balCurrency,
+          new_balance: num(mtn.groups.balance),
+          date: null,
+          time: null
+        };
+      }
+
+      const air = reAirtel.exec(t);
+      if (air){
+        return {
+          network: "Airtel",
+          rawMessage: t,
+          txid: air.groups.txid,
+          currency: air.groups.currency,
+          amount_paid: num(air.groups.amount),
+          counterparty: air.groups.counterparty?.trim(),
+          fee_currency: air.groups.feeCurrency,
+          charge: num(air.groups.fee),
+          new_balance_currency: air.groups.balCurrency,
+          new_balance: num(air.groups.balance),
+          date: air.groups.date,
+          time: air.groups.time
+        };
+      }
+      return null;
+    }
+
+    async function tidExists(txid){
+      if (!txid) return false;
+      const q1 = query(collection(db,"deposits"), where("status","==","successful"), where("txid","==", txid));
+      const s1 = await getDocs(q1);
+      return !s1.empty;
+    }
+
+    async function airtelComboExists(p){
+      const q2 = query(collection(db,"deposits"), where("status","==","successful"), orderBy("createdAt","desc"), limit(200));
+      const s2 = await getDocs(q2);
+      let clash = false;
+      s2.forEach(d=>{
+        const x = d.data();
+        if (
+          String(x.network||"").toLowerCase()==="airtel" &&
+          Number(x.amount_paid||0)===Number(p.amount_paid||0) &&
+          String(x.date||"")===String(p.date||"") &&
+          String(x.time||"")===String(p.time||"")
+        ){
+          clash = true;
+        }
+      });
+      return clash;
+    }
+
+    /* ---------------- Lock after paste/first input ---------------- */
+    const smsEl = $("sms");
+    smsEl.addEventListener("paste", ()=>{
+      setTimeout(()=>{
+        if (smsEl.value.trim()){
+          smsEl.readOnly = true;
+          $("markSuccess").disabled = false;
+        }
+      }, 0);
+    });
+    smsEl.addEventListener("input", ()=>{
+      if (!locked && smsEl.value.trim()){
+        locked = true;
+        smsEl.readOnly = true;
+        $("markSuccess").disabled = false;
       }
     });
 
-    // Upload to Cloudinary (unsigned)
-    async function uploadToCloudinary(file){
-      const endpoint = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/upload`;
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("upload_preset", cloudinaryConfig.uploadPreset);
-      const res = await fetch(endpoint, { method:"POST", body: fd });
-      if (!res.ok) throw new Error("Cloudinary upload failed.");
-      const data = await res.json();
-      return data.secure_url || data.url;
-    }
-
-    // Successful -> upload screenshot, mark deposit successful, credit wallet
+    /* ---------------- Successful -> silent validation & credit ---------------- */
     $("markSuccess").addEventListener("click", async ()=>{
-      if (!currentUser || !depId || !depData){ show("Not ready. Please reload."); return; }
-      if (!selectedFile){ show("Please upload the payment screenshot first."); return; }
+      const text = smsEl.value.trim();
+      if (!text){ show("Paste your payment message first."); return; }
+
+      const parsed = parseMessage(text);
+      if (!parsed){ show("This is a fake deposit message."); return; }
 
       try{
-        show("Uploading receipt…");
-        const receiptUrl = await uploadToCloudinary(selectedFile);
+        // Amount must equal expected + 460 (Eversend charge)
+        const expected = Number(depData?.amount || 0);
+        const expectedWithFee = expected + 460;
+        if (Number(parsed.amount_paid || 0) !== expectedWithFee){
+          show("This is a fake deposit message."); return;
+        }
 
+        // TID uniqueness
+        if (await tidExists(parsed.txid)){ show("This is a fake deposit message."); return; }
+
+        // Airtel extra anti-reuse
+        if (parsed.network === "Airtel" && await airtelComboExists(parsed)){
+          show("This is a fake deposit message."); return;
+        }
+
+        // Commit (transaction)
         await runTransaction(db, async (tx)=>{
           const dRef = doc(db,"deposits",depId);
           const uRef = doc(db,"users",currentUser.uid);
@@ -223,9 +278,13 @@
           const dSnap = await tx.get(dRef);
           if (!dSnap.exists()) throw new Error("Deposit not found.");
           const d = dSnap.data();
-
           if (d.uid !== currentUser.uid) throw new Error("Not your deposit.");
           if (d.status !== "pending")   throw new Error("Deposit already processed.");
+
+          // final TID re-check
+          const qFinal = query(collection(db,"deposits"), where("status","==","successful"), where("txid","==", parsed.txid));
+          const sFinal = await getDocs(qFinal);
+          if (!sFinal.empty) throw new Error("dup");
 
           const amount = Number(d.amount || 0);
 
@@ -235,18 +294,28 @@
 
           tx.update(dRef, {
             status: "successful",
-            receiptUrl,
             updatedAt: serverTimestamp(),
-            creditedAt: serverTimestamp()
+            creditedAt: serverTimestamp(),
+            validationMethod: "sms",
+            rawMessage: parsed.rawMessage,
+            network: parsed.network,
+            txid: parsed.txid,
+            currency: parsed.currency,
+            amount_paid: parsed.amount_paid,
+            charge: parsed.charge ?? null,
+            new_balance: parsed.new_balance ?? null,
+            date: parsed.date ?? null,
+            time: parsed.time ?? null
           });
+
           tx.set(uRef, { mainWallet: newBal }, { merge:true });
         });
 
         show("Deposit marked successful and wallet credited. Thank you!", true);
         $("markSuccess").disabled = true;
       }catch(err){
-        console.error(err);
-        show(err.message || "Failed to complete deposit.");
+        // Always generic for user
+        show("This is a fake deposit message.");
       }
     });
 
