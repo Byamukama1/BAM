@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BAM • Team Report</title>
+  <style>
+    :root{--brand:#9b1c1c;--brand2:#7c1111;--gold:#fbbf24;--ink:#161617;--muted:#6b7280;--bd:#f0d4d4}
+    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    body{margin:0;background:#fff7f7;color:#111}
+    header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:14px 16px;font-weight:900}
+    .wrap{max-width:1000px;margin:0 auto;padding:14px}
+    .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.08);border:1px solid var(--bd);padding:14px;margin-bottom:12px}
+
+    .tbl{width:100%;border-collapse:separate;border-spacing:0 6px}
+    .tbl th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;text-align:left;padding:10px}
+    .tbl td{background:#fff;border:1px solid var(--bd);padding:10px;border-radius:10px}
+
+    .pill{display:inline-block;background:#fff5d6;border:1px solid #f3c74d;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800}
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn{appearance:none;border:none;border-radius:10px;padding:8px 12px;font-weight:800;cursor:pointer}
+    .btn.tab{background:#f3f4f6;border:1px solid #e5e7eb}
+    .btn.tab.active{background:var(--gold);color:#111;border-color:#fbd34d}
+    .search{flex:1;min-width:200px;border:1px solid #e5e7eb;border-radius:10px;padding:10px;font-weight:600}
+    .small{font-size:12px;color:#6b7280}
+    .badge{display:inline-block;background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:2px 8px;font-size:11px}
+    .right{margin-left:auto}
+  </style>
+</head>
+<body>
+<header>Team Report</header>
+
+<main class="wrap">
+  <!-- Summary -->
+  <section class="card">
+    <div class="row">
+      <div class="pill">Your referral summary</div>
+      <span class="small">Counts update when the page loads/refreshed.</span>
+      <button id="refreshBtn" class="btn tab right">Refresh</button>
+    </div>
+    <table class="tbl" aria-label="Referral summary">
+      <thead>
+        <tr>
+          <th>Level</th>
+          <th>Total referrals</th>
+          <th>Verified (B1–B9)</th>
+          <th>Interns (not verified)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Level A</b> (your direct invites)</td>
+          <td id="a_total">—</td>
+          <td id="a_ver">—</td>
+          <td id="a_int">—</td>
+        </tr>
+        <tr>
+          <td><b>Level B</b></td>
+          <td id="b_total">—</td>
+          <td id="b_ver">—</td>
+          <td id="b_int">—</td>
+        </tr>
+        <tr>
+          <td><b>Level C</b></td>
+          <td id="c_total">—</td>
+          <td id="c_ver">—</td>
+          <td id="c_int">—</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Lists -->
+  <section class="card">
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn tab active" data-tier="A">Show Level A</button>
+      <button class="btn tab" data-tier="B">Show Level B</button>
+      <button class="btn tab" data-tier="C">Show Level C</button>
+      <input id="searchBox" class="search" placeholder="Search name, email or phone…" />
+      <span class="small" id="rowCount"></span>
+    </div>
+
+    <table class="tbl" aria-label="Invited friends list">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Email</th>
+          <th>Current level</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <!-- filled by JS -->
+      </tbody>
+    </table>
+  </section>
+</main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, collection, query, where, getDocs, doc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  /* ---------- Firebase ---------- */
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+    authDomain: "bam1-3d3e5.firebaseapp.com",
+    projectId: "bam1-3d3e5",
+    storageBucket: "bam1-3d3e5.firebasestorage.app",
+    messagingSenderId: "649603741902",
+    appId: "1:649603741902:web:e67f20363f485c0948789f"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+  const auth = getAuth(app);
+
+  /* ---------- Helpers ---------- */
+  const $ = id => document.getElementById(id);
+  const LEVEL_ORDER = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // highest -> lowest
+
+  function highestVerified(u){
+    for (const code of LEVEL_ORDER){
+      if (u?.[code]?.status === "verified") return code;
+    }
+    return null;
+  }
+  function currentLevelLabel(u){
+    const v = highestVerified(u);
+    return v ? v : "intern";
+  }
+  function joinedAtLabel(u){
+    // try user.createdAt (serverTimestamp) if present
+    const ts = u?.createdAt?.seconds ? new Date(u.createdAt.seconds*1000) : null;
+    return ts ? ts.toLocaleDateString() : "—";
+  }
+
+  // in-memory results so we can switch tabs without re-querying
+  const buckets = { A: [], B: [], C: [] };
+
+  async function loadTier(uid, tier){
+    let qy;
+    if (tier === "A") qy = query(collection(db,"users"), where("refA_uid","==", uid));
+    if (tier === "B") qy = query(collection(db,"users"), where("refB_uid","==", uid));
+    if (tier === "C") qy = query(collection(db,"users"), where("refC_uid","==", uid));
+    const snap = await getDocs(qy);
+    const arr = [];
+    snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
+    buckets[tier] = arr;
+  }
+
+  function summarize(tier, ids){
+    const total = ids.length;
+    let verified = 0;
+    for (const u of ids){ if (highestVerified(u)) verified++; }
+    const interns = total - verified;
+    $(`${tier.toLowerCase()}_total`).textContent = total;
+    $(`${tier.toLowerCase()}_ver`).textContent   = verified;
+    $(`${tier.toLowerCase()}_int`).textContent   = interns;
+  }
+
+  function renderList(tier){
+    const data = buckets[tier] || [];
+    const q = $("searchBox").value.trim().toLowerCase();
+
+    const filtered = q
+      ? data.filter(u=>{
+          const t = `${u.name||""} ${u.email||""} ${u.phone||""}`.toLowerCase();
+          return t.includes(q);
+        })
+      : data;
+
+    const rows = filtered.map(u=>`
+      <tr>
+        <td>${u.name || "—"}</td>
+        <td>${u.phone || "—"}</td>
+        <td>${u.email || "—"}</td>
+        <td><span class="badge">${currentLevelLabel(u)}</span></td>
+        <td>${joinedAtLabel(u)}</td>
+      </tr>
+    `).join("");
+
+    $("rows").innerHTML = rows || `<tr><td colspan="5" class="muted">No results.</td></tr>`;
+    $("rowCount").textContent = `${filtered.length} shown`;
+  }
+
+  async function loadAll(uid){
+    // fetch three tiers in sequence (simple & reliable)
+    await loadTier(uid, "A");
+    await loadTier(uid, "B");
+    await loadTier(uid, "C");
+
+    summarize("A", buckets.A);
+    summarize("B", buckets.B);
+    summarize("C", buckets.C);
+
+    // default view: A
+    document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
+    document.querySelector('.btn.tab[data-tier="A"]').classList.add("active");
+    renderList("A");
+  }
+
+  // wiring
+  document.querySelectorAll(".btn.tab").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      renderList(btn.dataset.tier);
+    });
+  });
+  $("searchBox").addEventListener("input", ()=>{
+    const active = document.querySelector(".btn.tab.active")?.dataset.tier || "A";
+    renderList(active);
+  });
+  $("refreshBtn").addEventListener("click", async ()=>{
+    const u = auth.currentUser;
+    if (u) await loadAll(u.uid);
+  });
+
+  onAuthStateChanged(auth, async (user)=>{
+    if (!user){ location.href = "login.html"; return; }
+    // ensure we have the user doc (optional)
+    const usnap = await getDoc(doc(db,"users",user.uid));
+    if (!usnap.exists()){ location.href = "register.html"; return; }
+    await loadAll(user.uid);
+  });
+</script>
+</body>
+</html>
