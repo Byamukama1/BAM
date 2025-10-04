@@ -89,7 +89,7 @@
     <h3 class="h4">How eligibility is checked</h3>
     <ul class="muted" style="line-height:1.55;padding-left:18px;margin:8px 0">
       <li><b>Direct verified users</b> are people you referred (your code) whose account shows any level (B1–B9) with status <b>verified</b>.</li>
-      <li><b>Referrals who paid for adverts</b> are unique users with at least one <b>approved & paid</b> advert in <code>adverts</code> that is tagged as your <b>Level A</b>.</li>
+      <li><b>Referrals who paid for adverts</b> are unique users with at least one <b>approved & paid</b> advert in <code>adverts</code> that is tagged with your <b>referrerA_uid</b>.</li>
       <li>We always award the <b>highest</b> role you qualify for. Clicking <b>REQUEST SALARY</b> creates a record in <code>salaries</code> with <b>pending</b> status for admin review.</li>
     </ul>
     <p class="muted">Tip: If you need guidance on how to reach a salary level, contact your manager.</p>
@@ -186,6 +186,23 @@
     return !s.empty;
   }
 
+  // NEW: check whether user has already requested this role in the current calendar month
+  async function hasRequestedThisMonth(uid, roleKey){
+    // start of current month (local)
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+
+    // Query for any salary requests for this role created on/after startOfMonth
+    const q = query(
+      collection(db,"salaries"),
+      where("uid","==", uid),
+      where("roleKey","==", roleKey),
+      where("createdAt", ">=", startOfMonth)
+    );
+    const snap = await getDocs(q);
+    return !snap.empty;
+  }
+
   async function refreshCountsAndEligibility(){
     countsEl.style.display = "none";
     tagEl.style.display = "none";
@@ -196,7 +213,7 @@
 
     countsEl.innerHTML = `
       <span>Direct verified: <b>${vCount}</b></span>
-      <span>Referrals who paid for Adverts: <b>${pCount}</b></span>
+      <span>Referrals who paid: <b>${pCount}</b></span>
     `;
     countsEl.style.display = "flex";
 
@@ -227,8 +244,15 @@
 
     if (!stillEligible){ show("Eligibility changed. Please try again.", false); await refreshCountsAndEligibility(); return; }
 
+    // Keep existing pending check (specific: prevents duplicate pending requests)
     if (await alreadyPending(me.uid, roleKey)){
       show("You already have a pending request for this role.", false);
+      return;
+    }
+
+    // NEW: enforce one request per role per calendar month
+    if (await hasRequestedThisMonth(me.uid, roleKey)){
+      show("You already requested this role during this month. You may only request a given role once per calendar month.", false);
       return;
     }
 
