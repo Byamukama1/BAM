@@ -77,7 +77,7 @@
 </div>
 
       <p class="banner" style="margin-top:8px">
-        ⚠️ Submitting a fake message will be flagged and can lead to account restrictions.
+        ⚠️ Submitting a wrong message will be flagged and can lead to account restrictions.
       </p>
 
       <div class="hr"></div>
@@ -118,7 +118,7 @@
     const $ = id=>document.getElementById(id);
     const show = (m, ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${m}</div>`; };
     const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
-    const EVERSEND_LINK = "https://eversend.me/oblinks";
+    const EVERSEND_LINK = "https://eversend.me/collections";
 
     let currentUser=null, depId=null, depData=null, locked=false;
 
@@ -268,7 +268,7 @@
         const expected = Number(depData?.amount || 0);
         const expectedWithFee = expected + 460;
         if (Number(parsed.amount_paid || 0) !== expectedWithFee){
-          show("This is a fake deposit message."); return;
+          show("This is a wrong deposit message."); return;
         }
 
         // TID uniqueness
@@ -276,7 +276,7 @@
 
         // Airtel extra anti-reuse
         if (parsed.network === "Airtel" && await airtelComboExists(parsed)){
-          show("This is a fake deposit message."); return;
+          show("This is a wrong deposit message."); return;
         }
 
         // Commit (transaction)
@@ -324,7 +324,7 @@
         $("markSuccess").disabled = true;
       }catch(err){
         // Always generic for user
-        show("This is a fake deposit message.");
+        show("This is a wrong deposit message.");
       }
     });
 
