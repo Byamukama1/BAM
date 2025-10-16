@@ -42,22 +42,13 @@
     .overlay{position:fixed;inset:0;background:rgba(255,255,255,.96);display:grid;place-items:center;z-index:9999}
     .overlay .box{text-align:center;color:#7c1111;font-weight:700;background:#fff;border:1px solid #f6caca;border-radius:14px;
       padding:16px 18px;box-shadow:0 10px 24px rgba(0,0,0,.08)}
-    .spinner{width:36px;height:36px;border-radius:50%;border:3px solid rgba(155,28,28,.2);
-      border-top-color:var(--brand);animation:spin .8s linear infinite;margin:0 auto 10px}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    
   </style>
 </head>
 <body>
-  <header>BAM • Tasks</header>
+  <header>BAM Tasks</header>
 
-  <!-- Full-page loading -->
-  <div id="pageLoading" class="overlay">
-    <div class="box">
-      <div class="spinner"></div>
-      <div>Loading your tasks…</div>
-      <div class="muted" style="margin-top:6px">Tap <b>Claim</b> after watching.</div>
-    </div>
-  </div>
+  
 
   <main class="wrap">
     <div id="statusArea"></div>
