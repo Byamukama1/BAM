@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Eversend Payment</title>
+  <title>MTN Payment</title>
   <style>
     :root{ --brand:#9b1c1c; --brand-d:#7c1111; --gold:#fbbf24; --ink:#161617; --muted:#6b7280; }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
@@ -35,58 +35,54 @@
   </style>
 </head>
 <body>
-  <header> Eversend Payment</header>
+  <header>MTN Payment</header>
 
   <main class="wrap">
     <section class="card">
-      <h2 class="title">Use Eversend to pay</h2>
-      <p class="muted">After paying on Eversend, <b>copy the MTN/Airtel message</b> you received and paste it below. Then press <b>Successful</b>.</p>
+      <h2 class="title">Send Money to MTN Number</h2>
+      <p class="muted">
+        Send the required amount to the MTN number below. After sending, <b>copy the full MTN/Airtel message</b> you received and paste it here.
+        Then press <b>Successful</b>.
+      </p>
 
       <!-- visible deposit details -->
       <div class="kv">
-        <div class="box">Phone: <span id="depPhone">—</span></div>
+        <div class="box">Name: <b>Mushimiyimaana Jacenta</b></div>
+        <div class="box">send to: <b>0779387480</b></div>
         <div class="box">Amount: <span id="depAmount">—</span></div>
-      </div>
-
-      <!-- EVERSEND button -->
-      <div class="row" style="margin-top:6px">
-        <button id="openEversend" class="btn gold">click here 👉🏿 TO USE EVERSEND TO PAY</button>
-        <span class="small">(You’ll complete the payment there, copy message and then return here.)</span>
       </div>
 
       <div class="hr"></div>
 
-      <!-- Paste message (locks after first paste/typing) -->
+      <!-- Paste message -->
       <h3 class="title" style="font-size:16px">Paste your MTN/Airtel payment message</h3>
       <textarea id="sms" placeholder="Paste the full SMS here…"></textarea>
 
       <div id="statusArea"></div>
 
-      <!-- Only Successful -->
       <div class="row" style="margin-top:12px">
         <button id="markSuccess" class="btn red" disabled>Successful</button>
       </div>
       
-  <!-- Contact Manager -->
-<div class="row" style="margin-top:6px">
-  <button onclick="location.href='https://wa.me/447346269300'" 
-          class="btn small" 
-          style="background:#f3f4f6;color:#374151;font-size:11px;padding:6px 10px;border-radius:8px">
-    📞 Contact Manager
-  </button>
-</div>
+      <!-- Contact Manager -->
+      <div class="row" style="margin-top:6px">
+        <button onclick="location.href='https://wa.me/447346269300'" 
+                class="btn small" 
+                style="background:#f3f4f6;color:#374151;font-size:11px;padding:6px 10px;border-radius:8px">
+          📞 Contact Manager
+        </button>
+      </div>
 
       <p class="banner" style="margin-top:8px">
-        ⚠️ Submitting a wrong message will be flagged and can lead to account restrictions.
+        ⚠️ Submitting a wrong message repeatedly will be flagged and can lead to account restrictions.
       </p>
 
       <div class="hr"></div>
 
-      <!-- Quick guide -->
       <h3 class="title" style="font-size:16px">Quick steps</h3>
       <ol class="small" style="line-height:1.55;padding-left:18px">
-        <li>Click <b>USE EVERSEND TO PAY</b> and complete payment.</li>
-        <li>Copy the <b>MTN/Airtel message</b> you received.</li>
+        <li>Send the required amount to <b>0779387480 (Mushimiyimaana Jacenta)</b> using MTN or Airtel Money.</li>
+        <li>Copy the <b>confirmation message</b> you received.</li>
         <li>Paste it here and press <b>Successful</b>.</li>
       </ol>
     </section>
@@ -100,7 +96,6 @@
       collection, query, where, orderBy, limit, getDocs
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* ---------------- Firebase ---------------- */
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
       authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -114,11 +109,9 @@
     const db  = getFirestore(app);
     const auth = getAuth(app);
 
-    /* ---------------- Helpers ---------------- */
     const $ = id=>document.getElementById(id);
     const show = (m, ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${m}</div>`; };
     const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
-    const EVERSEND_LINK = "https://eversend.me/collections";
 
     let currentUser=null, depId=null, depData=null, locked=false;
 
@@ -151,65 +144,28 @@
       if (!picked){ show("No pending deposit found. Please start again from Recharge."); return; }
       depId = picked.id;
       depData = picked.data;
-      if (depData.uid !== currentUser.uid){ show("This deposit does not belong to your account."); return; }
-      $("depPhone").textContent  = depData.phone || "—";
       $("depAmount").textContent = UGX(depData.amount || 0);
     }
 
-    // Open Eversend
-    $("openEversend").addEventListener("click", ()=>{
-      window.open(EVERSEND_LINK, "_blank", "noopener");
-    });
-
-    /* ---------------- Parsers (silent) ---------------- */
-    // MTN example
-    const reMTN = /(?:Y'?ello.*?\s)?(?<counterparty>GUARANTY\s+TRUST\s+BANK.*?|GT\s*BANK.*?|GUARANTY\s+TRUST\s+BANK.*)\s+has\s+deducted\s+(?<currency>[A-Z]{3})\s*(?<amount>[\d,]+)\s+.*?\bfee\s+of\s+(?<feeCurrency>[A-Z]{3})\s*(?<fee>[\d,]+)\s+Transaction\s+ID:\s*(?<txid>\d+).*?New\s+balance\s+is:\s*(?<balCurrency>[A-Z]{3})\s*(?<balance>[\d,]+)\b/i;
-
-    // Airtel example
-    const reAirtel = /PAID\.TID\s+(?<txid>\d+)\.\s*(?<currency>[A-Z]{3})\s*(?<amount>[\d,]+)\s+to\s+(?<counterparty>.+?)\s+Charge\s+(?<feeCurrency>[A-Z]{3})\s*(?<fee>[\d,]+)\.\s*Bal\s+(?<balCurrency>[A-Z]{3})\s*(?<balance>[\d,]+)\.\s*(?<date>\d{1,2}-[A-Za-z]+-\d{4})\s+(?<time>\d{1,2}:\d{2})/i;
+    /* ---------------- Message Parsing ---------------- */
+    // MTN -> MTN / Airtel messages simplified
+    const reMtnToMtn = /sent\s+UGX\s*(?<amount>[\d,]+)\s+to\s+(?<name>[A-Z\s]+),?\s*256\d{9}.*?(?:fee[:\s]*)?(UGX)?\s*(?<fee>[\d,]*)?.*?(?:ID|Transaction ID)[:\s]*(?<txid>\d+)/i;
+    const reMtnToAirtel = /sent\s+UGX\s*(?<amount>[\d,]+)\s+to\s+256\d{9},\s*(?<name>[A-Z, ]+)\.\s*Fee[:\s]*UGX\s*(?<fee>[\d,]+).*?Transaction ID[:\s]*(?<txid>\d+)/i;
+    const reAirtelToMtn = /SENT\s+UGX\s*(?<amount>[\d,]+)\s+to\s+(?<name>[A-Z\s]+)\s+on\s+256\d{9}.*?Fee\s+UGX\s*(?<fee>[\d,]+).*?TID\s*(?<txid>\d+)/i;
 
     const num = s => Number(String(s||"").replace(/,/g,""));
 
-    function parseMessage(text){
-      const t = (text||"").trim();
-      if (!t) return null;
-
-      const mtn = reMTN.exec(t);
-      if (mtn){
-        return {
-          network: "MTN",
-          rawMessage: t,
-          txid: mtn.groups.txid,
-          currency: mtn.groups.currency,
-          amount_paid: num(mtn.groups.amount),
-          counterparty: mtn.groups.counterparty?.trim(),
-          fee_currency: mtn.groups.feeCurrency,
-          charge: num(mtn.groups.fee),
-          new_balance_currency: mtn.groups.balCurrency,
-          new_balance: num(mtn.groups.balance),
-          date: null,
-          time: null
-        };
-      }
-
-      const air = reAirtel.exec(t);
-      if (air){
-        return {
-          network: "Airtel",
-          rawMessage: t,
-          txid: air.groups.txid,
-          currency: air.groups.currency,
-          amount_paid: num(air.groups.amount),
-          counterparty: air.groups.counterparty?.trim(),
-          fee_currency: air.groups.feeCurrency,
-          charge: num(air.groups.fee),
-          new_balance_currency: air.groups.balCurrency,
-          new_balance: num(air.groups.balance),
-          date: air.groups.date,
-          time: air.groups.time
-        };
-      }
-      return null;
+    function parseMessage(t){
+      t = t.trim();
+      let m = reMtnToMtn.exec(t) || reMtnToAirtel.exec(t) || reAirtelToMtn.exec(t);
+      if (!m) return null;
+      return {
+        raw: t,
+        txid: m.groups.txid,
+        amount_paid: num(m.groups.amount),
+        fee: num(m.groups.fee||0),
+        name: (m.groups.name||"").trim(),
+      };
     }
 
     async function tidExists(txid){
@@ -219,118 +175,55 @@
       return !s1.empty;
     }
 
-    async function airtelComboExists(p){
-      const q2 = query(collection(db,"deposits"), where("status","==","successful"), orderBy("createdAt","desc"), limit(200));
-      const s2 = await getDocs(q2);
-      let clash = false;
-      s2.forEach(d=>{
-        const x = d.data();
-        if (
-          String(x.network||"").toLowerCase()==="airtel" &&
-          Number(x.amount_paid||0)===Number(p.amount_paid||0) &&
-          String(x.date||"")===String(p.date||"") &&
-          String(x.time||"")===String(p.time||"")
-        ){
-          clash = true;
-        }
-      });
-      return clash;
-    }
-
-    /* ---------------- Lock after paste/first input ---------------- */
     const smsEl = $("sms");
-    smsEl.addEventListener("paste", ()=>{
-      setTimeout(()=>{
-        if (smsEl.value.trim()){
-          smsEl.readOnly = true;
-          $("markSuccess").disabled = false;
-        }
-      }, 0);
-    });
+    smsEl.addEventListener("paste", ()=>setTimeout(()=>{
+      if (smsEl.value.trim()){ smsEl.readOnly=true; $("markSuccess").disabled=false; }
+    },0));
     smsEl.addEventListener("input", ()=>{
-      if (!locked && smsEl.value.trim()){
-        locked = true;
-        smsEl.readOnly = true;
-        $("markSuccess").disabled = false;
-      }
+      if (!locked && smsEl.value.trim()){ locked=true; smsEl.readOnly=true; $("markSuccess").disabled=false; }
     });
 
-    /* ---------------- Successful -> silent validation & credit ---------------- */
     $("markSuccess").addEventListener("click", async ()=>{
       const text = smsEl.value.trim();
       if (!text){ show("Paste your payment message first."); return; }
-
       const parsed = parseMessage(text);
-      if (!parsed){ show("This is a fake deposit message."); return; }
+      if (!parsed){ show("This is a wrong deposit message."); return; }
 
       try{
-        // Amount must equal expected + 460 (Eversend charge)
         const expected = Number(depData?.amount || 0);
-        const expectedWithFee = expected + 460;
-        if (Number(parsed.amount_paid || 0) !== expectedWithFee){
-          show("This is a wrong deposit message."); return;
-        }
+        if (Number(parsed.amount_paid||0) !== expected){ show("This is a wrong deposit message."); return; }
+        if (await tidExists(parsed.txid)){ show("This is a wrong deposit message."); return; }
 
-        // TID uniqueness
-        if (await tidExists(parsed.txid)){ show("This is a fake deposit message."); return; }
-
-        // Airtel extra anti-reuse
-        if (parsed.network === "Airtel" && await airtelComboExists(parsed)){
-          show("This is a wrong deposit message."); return;
-        }
-
-        // Commit (transaction)
         await runTransaction(db, async (tx)=>{
           const dRef = doc(db,"deposits",depId);
           const uRef = doc(db,"users",currentUser.uid);
-
           const dSnap = await tx.get(dRef);
           if (!dSnap.exists()) throw new Error("Deposit not found.");
           const d = dSnap.data();
-          if (d.uid !== currentUser.uid) throw new Error("Not your deposit.");
-          if (d.status !== "pending")   throw new Error("Deposit already processed.");
-
-          // final TID re-check
-          const qFinal = query(collection(db,"deposits"), where("status","==","successful"), where("txid","==", parsed.txid));
-          const sFinal = await getDocs(qFinal);
-          if (!sFinal.empty) throw new Error("dup");
-
-          const amount = Number(d.amount || 0);
+          if (d.status !== "pending") throw new Error("Deposit already processed.");
 
           const uSnap = await tx.get(uRef);
-          const u = uSnap.exists() ? uSnap.data() : {};
-          const newBal = Number(u.mainWallet || 0) + amount;
+          const u = uSnap.exists()? uSnap.data(): {};
+          const newBal = Number(u.mainWallet || 0) + expected;
 
-          tx.update(dRef, {
-            status: "successful",
-            updatedAt: serverTimestamp(),
-            creditedAt: serverTimestamp(),
-            validationMethod: "sms",
-            rawMessage: parsed.rawMessage,
-            network: parsed.network,
-            txid: parsed.txid,
-            currency: parsed.currency,
-            amount_paid: parsed.amount_paid,
-            charge: parsed.charge ?? null,
-            new_balance: parsed.new_balance ?? null,
-            date: parsed.date ?? null,
-            time: parsed.time ?? null
+          tx.update(dRef,{
+            status:"successful", updatedAt:serverTimestamp(),
+            creditedAt:serverTimestamp(), validationMethod:"sms",
+            rawMessage:parsed.raw, network:"MTN/Airtel",
+            txid:parsed.txid, amount_paid:parsed.amount_paid,
+            charge:parsed.fee ?? null
           });
-
-          tx.set(uRef, { mainWallet: newBal }, { merge:true });
+          tx.set(uRef,{ mainWallet:newBal },{ merge:true });
         });
 
         show("Deposit marked successful and wallet credited. Thank you!", true);
         $("markSuccess").disabled = true;
-      }catch(err){
-        // Always generic for user
-        show("This is a wrong deposit message.");
-      }
+      }catch{ show("This is a wrong deposit message."); }
     });
 
-    onAuthStateChanged(auth, async (user)=>{
-      if(!user){ location.href="login.html"; return; }
-      currentUser = user;
+    onAuthStateChanged(auth, async (u)=>{
+      if(!u){ location.href="login.html"; return; }
+      currentUser = u;
       await loadDeposit();
     });
   </script>
