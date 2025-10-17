@@ -68,379 +68,333 @@
   <!-- YouTube IFrame API -->
   <script src="https://www.youtube.com/iframe_api"></script>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import {
-      getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, setDoc,
-      serverTimestamp, where, runTransaction
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+ 
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, setDoc,
+  serverTimestamp, where, runTransaction
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* ---------- Firebase ---------- */
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
-      authDomain: "bam1-3d3e5.firebaseapp.com",
-      projectId: "bam1-3d3e5",
-      storageBucket: "bam1-3d3e5.firebasestorage.app",
-      messagingSenderId: "649603741902",
-      appId: "1:649603741902:web:e67f20363f485c0948789f",
-      measurementId: "G-W2DY026FXB"
+/* ---------- Firebase ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+  authDomain: "bam1-3d3e5.firebaseapp.com",
+  projectId: "bam1-3d3e5",
+  storageBucket: "bam1-3d3e5.firebasestorage.app",
+  messagingSenderId: "649603741902",
+  appId: "1:649603741902:web:e67f20363f485c0948789f",
+  measurementId: "G-W2DY026FXB"
+};
+const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* ---------- Helpers & Config ---------- */
+const $ = (id)=>document.getElementById(id);
+const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
+const todayKey = ()=> new Date().toISOString().slice(0,10);
+const shuffle = (arr)=>{ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
+
+const LEVEL_RATES = {
+  INTERN: { perTask: 300,  dailyMax: 5  },
+  B1:     { perTask: 330,  dailyMax: 7  },
+  B2:     { perTask: 430,  dailyMax: 17 },
+  B3:     { perTask: 735,  dailyMax: 28 },
+  B4:     { perTask: 1200, dailyMax: 54 },
+  B5:     { perTask: 2250, dailyMax: 80 },
+  B6:     { perTask: 3700, dailyMax: 130 },
+  B7:     { perTask: 6500, dailyMax: 175 },
+  B8:     { perTask: 8750, dailyMax: 260 },
+  B9:     { perTask: 15000,dailyMax: 300 },
+};
+const INTERNSHIP_DAYS = 3;
+const levelsDesc = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+
+function showBanner(html, ok=false){
+  const node = document.createElement("div");
+  node.className = "banner" + (ok ? " ok": "");
+  node.innerHTML = html;
+  const area = $("statusArea"); area.innerHTML = ""; area.appendChild(node);
+}
+
+function tsToDate(v){ if (!v) return null; if (v.toDate) return v.toDate(); const d = new Date(v); return isNaN(d)?null:d; }
+async function ensureInternshipStart(uid){
+  const tRef = doc(db,"tasks",uid);
+  const tSnap = await getDoc(tRef);
+  if (!tSnap.exists() || !tSnap.data().internshipStart){
+    await setDoc(tRef,{ internshipStart: serverTimestamp(), createdAt: serverTimestamp() },{ merge:true });
+    return new Date();
+  }
+  return tsToDate(tSnap.data().internshipStart) || new Date();
+}
+const daysBetween = (a,b)=> Math.floor((b-a)/(24*3600*1000));
+async function getInternshipInfo(uid){
+  const start = await ensureInternshipStart(uid);
+  const elapsed = daysBetween(start, new Date());
+  return { elapsed, left: Math.max(0, INTERNSHIP_DAYS - elapsed), ended: elapsed >= INTERNSHIP_DAYS };
+}
+function highestLevelWithStatus(userDoc, status){
+  for (const code of levelsDesc){
+    const entry = userDoc?.[code];
+    if (entry && entry.status === status) return code;
+  }
+  return null;
+}
+
+/* ---------- Events ---------- */
+async function getTodayEvents(uid){
+  const evCol = collection(db,"tasks",uid,"events");
+  const qy = query(evCol, where("dateKey","==", todayKey()));
+  const snap = await getDocs(qy);
+  const events = [];
+  snap.forEach(d => events.push({ id:d.id, ...d.data() }));
+  return events;
+}
+async function countToday(uid){ return (await getTodayEvents(uid)).length; }
+async function alreadyDoneToday(uid, adId){
+  const events = await getTodayEvents(uid);
+  return events.some(e => String(e.adId) === String(adId));
+}
+
+/* ---------- YouTube ---------- */
+const pendingYT = []; let ytReady = false;
+window.onYouTubeIframeAPIReady = ()=>{ ytReady = true; for (const p of pendingYT){ p.attach(); } pendingYT.length = 0; };
+function extractYouTubeId(input){
+  if (!input) return "";
+  const s = String(input);
+  let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/); if (m) return m[1];
+  m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+  m = s.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+  m = s.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
+  m = s.match(/^([A-Za-z0-9_-]{11})$/); if (m) return m[1];
+  return "";
+}
+function youTubeEmbedSrc(ad){
+  const id = ad.videoId || extractYouTubeId(ad.url || "");
+  if (!id) return "";
+  const origin = encodeURIComponent(location.origin);
+  return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
+}
+
+/* ---------- Rendering ---------- */
+let MODE = "INTERN"; 
+let ACTIVE_LEVEL = "INTERN";
+
+async function loadAdvertsAndRender(levelCfg, uid){
+  const list = $("adList");
+  const dailyLimit = levelCfg.dailyMax || 5;
+
+  // Get all adverts and randomize
+  const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc")));
+  if (snap.empty){ list.innerHTML = '<div class="banner">No adverts available yet.</div>'; hideOverlay(); return; }
+
+  const allAds = [];
+  snap.forEach(d => allAds.push({ id:d.id, ...d.data() }));
+  shuffle(allAds);
+
+  // Get today's completed events
+  const doneEvents = await getTodayEvents(uid);
+  const doneIds = doneEvents.map(e => String(e.adId));
+
+  // Split ads: done first, then undone
+  const doneAds = allAds.filter(ad => doneIds.includes(ad.id));
+  const undoneAds = allAds.filter(ad => !doneIds.includes(ad.id));
+
+  // Combine (done first) and cut to daily limit
+  const finalAds = [...doneAds, ...undoneAds].slice(0, dailyLimit);
+
+  list.innerHTML = "";
+  for (const ad of finalAds){
+    await renderAdCard(list, ad, levelCfg, uid);
+  }
+  hideOverlay();
+}
+
+/* ---------- Render Ad Card ---------- */
+async function renderAdCard(container, ad, levelCfg, uid){
+  const card = document.createElement("section");
+  card.className = "card";
+
+  const iframeId = `yt_${ad.id}`;
+  const mediaId  = `media_${ad.id}`;
+  const btnId    = `btn_${ad.id}`;
+
+  const state = { started:false, timer:null, processing:false };
+  let ytPlayer = null, videoEl = null;
+
+  const earnAmount = Number(levelCfg.perTask || 0);
+  const earnStr = `UGX ${earnAmount.toLocaleString("en-UG")}`;
+  const isYT = ad.sourceType === "youtube";
+  const ytSrc = isYT ? youTubeEmbedSrc(ad) : "";
+  const mediaHtml = isYT
+    ? `<iframe id="${iframeId}" src="${ytSrc}" frameborder="0"
+         allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; accelerometer"
+         allowfullscreen></iframe>`
+    : `<video src="${ad.url}" muted playsinline autoplay controls></video>`;
+
+  card.innerHTML = `
+    <div class="title">${ad.title || "Watch this advert"}</div>
+    <div class="media" id="${mediaId}">${mediaHtml}</div>
+    <div class="desc">${ad.description ? ad.description : ""}</div>
+    <div class="controls">
+      <span class="earn">Earn ${earnStr}</span>
+      <button class="btn primary" id="${btnId}">${
+        MODE==="BLOCKED" ? "Waiting to get verified" : "Claim (10s)"
+      }</button>
+    </div>
+  `;
+  container.appendChild(card);
+
+  const btn = card.querySelector(`#${btnId}`);
+  const mediaWrap = card.querySelector(`#${mediaId}`);
+
+  if (MODE === "BLOCKED") btn.disabled = true;
+
+  if (isYT && ytSrc){
+    const attach = ()=>{ if (window.YT && window.YT.Player) ytPlayer = new window.YT.Player(iframeId); };
+    if (ytReady) attach(); else pendingYT.push({ attach });
+  } else if (!isYT) {
+    videoEl = mediaWrap.querySelector("video");
+  } else {
+    mediaWrap.innerHTML = `<div class="banner">Invalid YouTube link for this advert.</div>`;
+  }
+
+  try{
+    const claimed = await alreadyDoneToday(uid, ad.id);
+    if (claimed){ btn.textContent = "Already claimed"; btn.disabled = true; }
+  }catch{}
+
+  function startCountdown(){
+    state.started = true;
+    const start = Date.now();
+    btn.disabled = true;
+    const tick = ()=>{
+      const elapsed = Math.floor((Date.now() - start)/1000);
+      if (elapsed >= 10){ clearInterval(state.timer); state.timer=null; btn.textContent = "Claim Reward"; btn.disabled = false; }
+      else btn.textContent = `Claim (${10 - elapsed}s)`;
     };
-    const app = initializeApp(firebaseConfig);
-    getAnalytics(app);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    state.timer = setInterval(tick, 300);
+  }
 
-    /* ---------- Helpers & Config ---------- */
-    const $ = (id)=>document.getElementById(id);
-    const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
-    const todayKey = ()=> new Date().toISOString().slice(0,10);
-    const shuffle = (arr)=>{ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; };
+  btn.addEventListener("click", async ()=>{
+    if (MODE === "BLOCKED") return;
 
-    // Payouts & daily caps
-    const LEVEL_RATES = {
-      INTERN: { perTask: 300,  dailyMax: 5  },
-      B1:     { perTask: 330,  dailyMax: 7  },
-      B2:     { perTask: 430,  dailyMax: 17 },
-      B3:     { perTask: 735,  dailyMax: 28 },
-      B4:     { perTask: 1200, dailyMax: 54 },
-      B5:     { perTask: 2250, dailyMax: 80 },
-      B6:     { perTask: 3700,  dailyMax: 130 },
-      B7:     { perTask: 6500,  dailyMax: 175 },
-      B8:     { perTask: 8750,  dailyMax: 260 },
-      B9:     { perTask: 15000,dailyMax: 300 },
-    };
-
-    const INTERNSHIP_DAYS = 3;
-    const levelsDesc = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // highest first
-
-    function showBanner(html, ok=false){
-      const node = document.createElement("div");
-      node.className = "banner" + (ok ? " ok": "");
-      node.innerHTML = html;
-      const area = $("statusArea"); area.innerHTML = ""; area.appendChild(node);
-    }
-
-    // internship data
-    function tsToDate(v){ if (!v) return null; if (v.toDate) return v.toDate(); const d = new Date(v); return isNaN(d)?null:d; }
-    async function ensureInternshipStart(uid){
-      const tRef = doc(db,"tasks",uid);
-      const tSnap = await getDoc(tRef);
-      if (!tSnap.exists() || !tSnap.data().internshipStart){
-        await setDoc(tRef,{ internshipStart: serverTimestamp(), createdAt: serverTimestamp() },{ merge:true });
-        return new Date();
-      }
-      return tsToDate(tSnap.data().internshipStart) || new Date();
-    }
-    const daysBetween = (a,b)=> Math.floor((b-a)/(24*3600*1000));
-    async function getInternshipInfo(uid){
-      const start = await ensureInternshipStart(uid);
-      const elapsed = daysBetween(start, new Date());
-      return { elapsed, left: Math.max(0, INTERNSHIP_DAYS - elapsed), ended: elapsed >= INTERNSHIP_DAYS };
-    }
-
-    // levels
-    function highestLevelWithStatus(userDoc, status){
-      for (const code of levelsDesc){
-        const entry = userDoc?.[code];
-        if (entry && entry.status === status) return code;
-      }
-      return null;
-    }
-
-    // ==== EVENTS HELPERS (no composite index needed) ====
-    async function getTodayEvents(uid){
-      const evCol = collection(db,"tasks",uid,"events");
-      const qy = query(evCol, where("dateKey","==", todayKey()));
-      const snap = await getDocs(qy);
-      const events = [];
-      snap.forEach(d => events.push({ id:d.id, ...d.data() }));
-      return events;
-    }
-    async function countToday(uid){
-      const events = await getTodayEvents(uid);
-      return events.length;
-    }
-    async function alreadyDoneToday(uid, adId){
-      const events = await getTodayEvents(uid);
-      return events.some(e => String(e.adId) === String(adId));
-    }
-
-    /* ---------- YouTube helpers ---------- */
-    const pendingYT = []; let ytReady = false;
-    window.onYouTubeIframeAPIReady = ()=>{ ytReady = true; for (const p of pendingYT){ p.attach(); } pendingYT.length = 0; };
-    function extractYouTubeId(input){
-      if (!input) return "";
-      const s = String(input);
-      let m = s.match(/[?&]v=([A-Za-z0-9_-]{11})/); if (m) return m[1];
-      m = s.match(/youtu\.be\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
-      m = s.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
-      m = s.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/); if (m) return m[1];
-      m = s.match(/^([A-Za-z0-9_-]{11})$/); if (m) return m[1];
-      return "";
-    }
-    function youTubeEmbedSrc(ad){
-      const id = ad.videoId || extractYouTubeId(ad.url || "");
-      if (!id) return "";
-      const origin = encodeURIComponent(location.origin);
-      return `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1&origin=${origin}`;
-    }
-
-    /* ---------- Rendering ---------- */
-    let MODE = "INTERN"; // "INTERN" | "LEVEL" | "BLOCKED"
-    let ACTIVE_LEVEL = "INTERN";
-
-    async function loadAdvertsAndRender(levelCfg, uid){
-      const list = $("adList");
-      const snap = await getDocs(query(collection(db,"adverts"), orderBy("createdAt","desc"), limit(20)));
-      if (snap.empty) { list.innerHTML = '<div class="banner">No adverts available yet.</div>'; hideOverlay(); return; }
-
-      // collect and shuffle
-      const items = [];
-      snap.forEach(d=> items.push({ id:d.id, ...d.data() }));
-      shuffle(items);
-
-      list.innerHTML = "";
-      // render sequentially so we can await the “already claimed?” check
-      for (const ad of items){
-        // eslint-disable-next-line no-await-in-loop
-        await renderAdCard(list, ad, levelCfg, uid);
-      }
-      hideOverlay();
-    }
-
-    async function renderAdCard(container, ad, levelCfg, uid){
-      const card = document.createElement("section");
-      card.className = "card";
-
-      const iframeId = `yt_${ad.id}`;
-      const mediaId  = `media_${ad.id}`;
-      const btnId    = `btn_${ad.id}`;
-
-      const state = { started:false, timer:null, processing:false };
-      let ytPlayer = null, videoEl = null;
-
-      const earnAmount = Number(levelCfg.perTask || 0);
-      const earnStr = `UGX ${earnAmount.toLocaleString("en-UG")}`;
-
-      const isYT = ad.sourceType === "youtube";
-      const ytSrc = isYT ? youTubeEmbedSrc(ad) : "";
-      const mediaHtml = isYT
-        ? `<iframe id="${iframeId}" src="${ytSrc}" frameborder="0"
-             allow="autoplay; encrypted-media; picture-in-picture; clipboard-write; accelerometer"
-             allowfullscreen></iframe>`
-        : `<video src="${ad.url}" muted playsinline autoplay controls></video>`;
-
-      card.innerHTML = `
-        <div class="title">${ad.title || "Watch this advert"}</div>
-        <div class="media" id="${mediaId}">${mediaHtml}</div>
-        <div class="desc">${ad.description ? ad.description : ""}</div>
-        <div class="controls">
-          <span class="earn">Earn ${earnStr}</span>
-          <button class="btn primary" id="${btnId}">${
-            MODE==="BLOCKED" ? "Waiting to get verified" : "Claim (10s)"
-          }</button>
-        </div>
-      `;
-      container.appendChild(card);
-
-      const btn = card.querySelector(`#${btnId}`);
-      const mediaWrap = card.querySelector(`#${mediaId}`);
-
-      // Disable if blocked (under_review & internship finished)
-      if (MODE === "BLOCKED"){ btn.disabled = true; }
-
-      if (isYT && ytSrc){
-        const attach = ()=>{
-          if (window.YT && window.YT.Player){
-            ytPlayer = new window.YT.Player(iframeId, { events: { onStateChange: ()=>{} } });
-          }
-        };
-        if (ytReady) attach(); else pendingYT.push({ attach });
-      } else if (!isYT) {
-        videoEl = mediaWrap.querySelector("video");
-      } else {
-        mediaWrap.innerHTML = `<div class="banner">Invalid YouTube link for this advert.</div>`;
-      }
-
-      // On render: mark button as Already claimed if user did this ad today
+    if (!state.started){
       try{
-        const claimed = await alreadyDoneToday(uid, ad.id);
-        if (claimed){
-          btn.textContent = "Already claimed";
-          btn.disabled = true;
-        }
-      }catch{ /* ignore */ }
+        if (isYT && ytPlayer){ ytPlayer.unMute?.(); ytPlayer.playVideo?.(); }
+        else if (videoEl){ videoEl.muted=false; await videoEl.play().catch(()=>{}); }
+      }catch{}
+      startCountdown();
+      return;
+    }
 
-      function startCountdown(){
-        state.started = true;
-        const start = Date.now();
-        btn.disabled = true;
-        const tick = ()=>{
-          const elapsed = Math.floor((Date.now() - start)/1000);
-          if (elapsed >= 10){ clearInterval(state.timer); state.timer=null; btn.textContent = "Claim Reward"; btn.disabled = false; }
-          else { btn.textContent = `Claim (${10 - elapsed}s)`; }
-        };
-        state.timer = setInterval(tick, 300);
+    if (state.processing || btn.disabled || state.timer) return;
+    state.processing = true; btn.disabled = true; btn.textContent = "Processing…";
+
+    try{
+      const user = auth.currentUser; if (!user) throw new Error("Please sign in again.");
+      const levelUsed = MODE === "LEVEL" ? ACTIVE_LEVEL : "INTERN";
+      const cfg = LEVEL_RATES[levelUsed];
+
+      const done = await countToday(user.uid);
+      if (done >= cfg.dailyMax){
+        showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`);
+        btn.textContent = "Limit reached"; return;
+      }
+      if (await alreadyDoneToday(user.uid, ad.id)){
+        btn.textContent = "Already claimed"; btn.disabled = true;
+        showBanner("You already completed this advert today."); return;
       }
 
-      btn.addEventListener("click", async ()=>{
-        if (MODE === "BLOCKED") return;
+      await runTransaction(db, async (tx)=>{
+        const uref = doc(db,"users",user.uid);
+        const evRef = doc(collection(db,"tasks",user.uid,"events"));
+        const dateK = todayKey();
 
-        if (!state.started){
-          try{
-            if (isYT && ytPlayer){ ytPlayer.unMute?.(); ytPlayer.playVideo?.(); }
-            else if (videoEl){ videoEl.muted=false; await videoEl.play().catch(()=>{}); }
-          }catch{}
-          startCountdown();
-          return;
-        }
+        const usnap = await tx.get(uref);
+        const u = usnap.exists() ? usnap.data() : {};
+        const nextCommission = Number(u.commissionWallet || 0) + Number(cfg.perTask);
+        const userUpdate = { commissionWallet: nextCommission };
 
-        if (state.processing || btn.disabled || state.timer) return;
-        state.processing = true; btn.disabled = true; btn.textContent = "Processing…";
-
-        try{
-          const user = auth.currentUser; if (!user) throw new Error("Please sign in again.");
-
-          // Level used for payout
-          const levelUsed = MODE === "LEVEL" ? ACTIVE_LEVEL : "INTERN";
-          const cfg = LEVEL_RATES[levelUsed];
-
-          // Safety checks
-          const done = await countToday(user.uid);
-          if (done >= cfg.dailyMax){
-            showBanner(`Daily task limit reached (${cfg.dailyMax}). Come back tomorrow!`);
-            btn.textContent = "Limit reached"; return;
-          }
-          if (await alreadyDoneToday(user.uid, ad.id)){
-            btn.textContent = "Already claimed";
-            btn.disabled = true;
-            showBanner("You already completed this advert today.");
-            return;
-          }
-
-          // *** FIXED TRANSACTION: read all docs first, then write ***
-          await runTransaction(db, async (tx)=>{
-            const uref   = doc(db,"users",user.uid);
-            const evRef  = doc(collection(db,"tasks",user.uid,"events"));
-            const dateK  = todayKey();
-
-            // Prepare day marker refs (read BEFORE any write)
-            let markRef = null, markSnap = null;
-            if (levelUsed !== "INTERN") {
-              markRef = doc(collection(db,"tasks",user.uid,"dayMarkers"), `${dateK}_${levelUsed}`);
-              markSnap = await tx.get(markRef);
-            }
-
-            // Read user doc (BEFORE any write)
-            const usnap = await tx.get(uref);
-            const u = usnap.exists() ? usnap.data() : {};
-
-            // Compute updates
-            const nextCommission = Number(u.commissionWallet || 0) + Number(cfg.perTask);
-            const userUpdate = { commissionWallet: nextCommission };
-
-            if (levelUsed !== "INTERN" && !markSnap) {
-              // (safety) but markSnap is always set if not INTERN
-            }
-            if (levelUsed !== "INTERN" && markSnap && !markSnap.exists()) {
-              const currentLevelMap = (u[levelUsed] || {});
-              const currentDaysLeft = typeof currentLevelMap.daysLeft === "number" ? currentLevelMap.daysLeft : 100;
-              const newDaysLeft = Math.max(0, currentDaysLeft - 1);
-              const nextLevelMap = { ...currentLevelMap, daysLeft: newDaysLeft };
-              if (newDaysLeft === 0) nextLevelMap.status = "completed 100 days";
-              userUpdate[levelUsed] = nextLevelMap;
-            }
-
-            // Now perform WRITES
-            tx.set(uref, userUpdate, { merge:true });
-
-            tx.set(evRef, {
-              adId: ad.id,
-              amount: cfg.perTask,
-              dateKey: dateK,
-              createdAt: serverTimestamp(),
-              sourceType: ad.sourceType || null,
-              url: ad.url || null,
-              title: ad.title || null,
-              levelUsed
-            });
-
-            if (levelUsed !== "INTERN" && markSnap && !markSnap.exists()) {
-              tx.set(markRef, { level: levelUsed, dateKey: dateK, createdAt: serverTimestamp() });
-            }
-          });
-
-          // UI feedback
-          showBanner(`Great! +UGX ${Number(cfg.perTask).toLocaleString("en-UG")} added to your commission wallet.`, true);
-          btn.textContent = "Already claimed";
-          btn.disabled = true;
-        }catch(e){
-          console.error(e);
-          btn.textContent = "Try again";
-          btn.disabled = false;
-          showBanner(e?.message || "Failed to claim reward.");
-        }finally{
-          state.processing = false;
-        }
+        tx.set(uref, userUpdate, { merge:true });
+        tx.set(evRef, {
+          adId: ad.id,
+          amount: cfg.perTask,
+          dateKey: dateK,
+          createdAt: serverTimestamp(),
+          sourceType: ad.sourceType || null,
+          url: ad.url || null,
+          title: ad.title || null,
+          levelUsed
+        });
       });
+
+      showBanner(`Great! +UGX ${Number(cfg.perTask).toLocaleString("en-UG")} added to your commission wallet.`, true);
+      btn.textContent = "Already claimed"; btn.disabled = true;
+    }catch(e){
+      console.error(e);
+      btn.textContent = "Try again"; btn.disabled = false;
+      showBanner(e?.message || "Failed to claim reward.");
+    }finally{
+      state.processing = false;
+    }
+  });
+}
+
+/* ---------- Main flow ---------- */
+onAuthStateChanged(auth, async (user)=>{
+  if (!user){ location.href = "login.html"; return; }
+
+  try{
+    const uRef = doc(db,"users",user.uid);
+    const uSnap = await getDoc(uRef);
+    const u = uSnap.exists() ? uSnap.data() : {};
+
+    const verifiedLevel = highestLevelWithStatus(u, "verified");
+    const underReviewLevel = highestLevelWithStatus(u, "under_review");
+
+    if (verifiedLevel){
+      MODE = "LEVEL";
+      ACTIVE_LEVEL = verifiedLevel;
+      const cfg = LEVEL_RATES[verifiedLevel];
+      showBanner(`Status: <b>Verified (${verifiedLevel})</b>. You earn <b>UGX ${cfg.perTask.toLocaleString("en-UG")}</b> per task, up to <b>${cfg.dailyMax}</b> tasks daily.`, true);
+      await loadAdvertsAndRender(cfg, user.uid);
+      return;
     }
 
-    /* ---------- Main flow ---------- */
-    onAuthStateChanged(auth, async (user)=>{
-      if (!user){ location.href = "login.html"; return; }
+    const { left, ended } = await getInternshipInfo(user.uid);
 
-      try{
-        const uRef = doc(db,"users",user.uid);
-        const uSnap = await getDoc(uRef);
-        const u = uSnap.exists() ? uSnap.data() : {};
-
-        const verifiedLevel = highestLevelWithStatus(u, "verified");
-        const underReviewLevel = highestLevelWithStatus(u, "under_review");
-
-        if (verifiedLevel){
-          MODE = "LEVEL";
-          ACTIVE_LEVEL = verifiedLevel;
-          const cfg = LEVEL_RATES[verifiedLevel];
-          showBanner(`Status: <b>Verified (${verifiedLevel})</b>. You earn <b>UGX ${cfg.perTask.toLocaleString("en-UG")}</b> per task, up to <b>${cfg.dailyMax}</b> tasks daily.`, true);
-          await loadAdvertsAndRender(cfg, user.uid);
-          return;
-        }
-
-        const { left, ended } = await getInternshipInfo(user.uid);
-
-        if (underReviewLevel){
-          if (ended){
-            MODE = "BLOCKED";
-            ACTIVE_LEVEL = "INTERN";
-            showBanner(`Your internship finished. Upgrade to <b>${underReviewLevel}</b> is pending verification. <b>Waiting to get verified</b>. Please check again later or <b>contact manager</b> for faster verification.`);
-            await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
-            return;
-          } else {
-            MODE = "INTERN";
-            ACTIVE_LEVEL = "INTERN";
-            const dayWord = left === 1 ? "day" : "days";
-            showBanner(`Upgrade to <b>${underReviewLevel}</b> is under review. Meanwhile, continue with your internship — <b>${left} ${dayWord} left</b>.`);
-            await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
-            return;
-          }
-        }
-
-        // No level yet
-        MODE = "INTERN";
-        ACTIVE_LEVEL = "INTERN";
-        if (ended){
-          showBanner(`Your 3-day internship has ended. <b>Recharge</b> to unlock withdrawals and join a paid level for higher daily tasks.`);
-        } else {
-          const dayWord = left === 1 ? "day" : "days";
-          showBanner(`Internship in progress — <b>${left} ${dayWord} left</b>. You can earn UGX 300 per task (5 tasks/day).`);
-        }
+    if (underReviewLevel){
+      if (ended){
+        MODE = "BLOCKED"; ACTIVE_LEVEL = "INTERN";
+        showBanner(`Your internship finished. Upgrade to <b>${underReviewLevel}</b> is pending verification. Waiting to get verified.`);
         await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
-      } finally {
-        hideOverlay();
+        return;
+      } else {
+        MODE = "INTERN"; ACTIVE_LEVEL = "INTERN";
+        const dayWord = left === 1 ? "day" : "days";
+        showBanner(`Upgrade to <b>${underReviewLevel}</b> is under review. Meanwhile, continue with your internship — <b>${left} ${dayWord} left</b>.`);
+        await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
+        return;
       }
-    });
-  </script>
+    }
+
+    MODE = "INTERN"; ACTIVE_LEVEL = "INTERN";
+    if (ended){
+      showBanner(`Your 3-day internship has ended. <b>Recharge</b> to unlock withdrawals and join a paid level for higher daily tasks.`);
+    } else {
+      const dayWord = left === 1 ? "day" : "days";
+      showBanner(`Internship in progress — <b>${left} ${dayWord} left</b>. You can earn UGX 300 per task (5 tasks/day).`);
+    }
+    await loadAdvertsAndRender(LEVEL_RATES.INTERN, user.uid);
+  } finally {
+    hideOverlay();
+  }
+});
+</script>
 </body>
 </html>
