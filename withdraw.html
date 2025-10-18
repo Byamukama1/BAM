@@ -73,7 +73,6 @@
 
     <section class="card">
       <div class="row">
-        <!-- SINGLE REGISTERED NUMBER (EDIT ONLY) -->
         <div>
           <label>Registered name</label>
           <input id="regName" type="text" placeholder="e.g. Jane Doe" />
@@ -89,7 +88,6 @@
           </div>
         </div>
 
-        <!-- AMOUNTS -->
         <div>
           <label>Amount</label>
           <div class="chips" id="amountChips"></div>
@@ -98,7 +96,7 @@
 
       <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
         <button id="submitBtn" class="btn">Submit</button>
-        <div class="muted"Withdraw takes less than 48 hours</div>
+        <div class="muted">Withdraw takes less than 48 hours</div>
       </div>
 
       <div class="list" id="history"></div>
@@ -119,7 +117,7 @@
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import {
       getFirestore, doc, getDoc, setDoc, runTransaction,
-      collection, query, where, getDocs, serverTimestamp, orderBy, limit
+      collection, query, where, getDocs, serverTimestamp, orderBy, limit, deleteDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -162,10 +160,10 @@
       $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${msg}</div>`;
     }
     function isBlockedDay(){
-      // 0=Sun, 6=Sat (Friday allowed)
       const d = new Date().getDay();
       return d === 0 || d === 6;
     }
+
     async function alreadyWithdrewToday(uid){
       const qy = query(collection(db,"withdraws"),
         where("uid","==", uid),
@@ -175,7 +173,35 @@
       return !snap.empty;
     }
 
-    // Support legacy arrays of strings or objects; keep only the first entry
+    async function refundPendingWithdraws(uid){
+      const qy = query(collection(db,"withdraws"),
+        where("uid","==", uid),
+        where("status","==","pending")
+      );
+      const snap = await getDocs(qy);
+      if (snap.empty) return 0;
+      let totalRefunded = 0;
+
+      for (const docSnap of snap.docs){
+        const w = docSnap.data();
+        const amount = Number(w.amount||0);
+        totalRefunded += amount;
+
+        await runTransaction(db, async (tx)=>{
+          const uref = doc(db,"users",uid);
+          const usnap = await tx.get(uref);
+          const userData = usnap.exists() ? usnap.data() : {};
+          const newBalance = Number(userData.commissionWallet||0) + amount;
+
+          tx.update(uref,{ commissionWallet: newBalance, updatedAt: serverTimestamp() });
+          tx.update(docSnap.ref, { status:"refunded", refundedAt: serverTimestamp() });
+        });
+
+        await deleteDoc(docSnap.ref);
+      }
+      return totalRefunded;
+    }
+
     function normalizeSingle(arr){
       if (!Array.isArray(arr) || !arr.length) return { phone:"", name:"" };
       const v = typeof arr[0] === "string" ? { phone: arr[0], name:"" } : arr[0];
@@ -249,7 +275,15 @@
       $("levelTag").textContent = level;
       renderAmountChips(allowedAmounts(level));
 
-      // load single registered number
+      if (level === "INTERN"){
+        const refunded = await refundPendingWithdraws(uid);
+        if (refunded > 0){
+          show(`UGX ${refunded.toLocaleString("en-UG")} refunded to your wallet. Interns cannot withdraw.`, true);
+        }
+        show(`The purpose of internship is to learn how to do daily tasks. For income and withdrawals, you can become our employee by joining any level. Thank you.`, false);
+        $("submitBtn").disabled = true;
+      }
+
       let single = normalizeSingle(u.depositNumbers);
       $("regName").value = single.name || "";
       $("regPhone").value = single.phone || "";
@@ -299,7 +333,6 @@
             const balance = Number(data.commissionWallet || 0);
             if (balance < amount) throw new Error("Insufficient commission wallet balance.");
 
-            // Ensure the single number is saved as source of truth
             tx.set(ref, { depositNumbers: [{ phone, name }], commissionWallet: balance - amount, updatedAt: serverTimestamp() }, { merge:true });
 
             const wRef = doc(collection(db,"withdraws"));
