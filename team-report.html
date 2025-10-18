@@ -2,254 +2,208 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>BAM • Team Report</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BAM • Register</title>
   <style>
-    :root{
-      --brand:#9b1c1c; --brand2:#7c1111; --gold:#fbbf24; --ink:#161617;
-      --muted:#6b7280; --bd:#efe2e2; --bg:#fff7f7; --card:#ffffff;
-    }
-    *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    body{margin:0;background:var(--bg);color:var(--ink)}
-    header{
-      background:linear-gradient(135deg,var(--brand),var(--brand2));
-      color:#fff;padding:16px 18px;font-weight:900;letter-spacing:.2px
-    }
-    .wrap{max-width:1000px;margin:0 auto;padding:16px 14px}
-
-    .card{background:var(--card);border-radius:16px;border:1px solid var(--bd);
-      box-shadow:0 10px 24px rgba(0,0,0,.06);padding:14px;margin-bottom:14px}
-
-    /* Summary table */
-    .tbl{width:100%;border-collapse:separate;border-spacing:0 8px}
-    .tbl thead th{
-      font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);
-      text-align:left;padding:10px 12px
-    }
-    .tbl tbody td{
-      background:#fff;border:1px solid var(--bd);padding:12px;border-radius:12px
-    }
-
-    /* List table */
-    .list{
-      width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--bd);
-      border-radius:12px;overflow:hidden
-    }
-    .list thead th{
-      background:#fcf1f1;color:#733;border-bottom:1px solid var(--bd);
-      font-size:12px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:12px
-    }
-    .list tbody tr{background:#fff}
-    .list tbody tr:nth-child(odd){background:#fffdfd}
-    .list tbody td{padding:12px;border-bottom:1px solid #f3e3e3}
-    .list tbody tr:last-child td{border-bottom:none}
-
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .pill{display:inline-block;background:#fff5d6;border:1px solid #f3c74d;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800}
-    .btn{appearance:none;border:none;border-radius:10px;padding:10px 12px;font-weight:800;cursor:pointer}
-    .btn.tab{background:#f6f7f9;border:1px solid #e6e8eb}
-    .btn.tab.active{background:var(--gold);color:#111;border-color:#fbd34d}
-    .search{flex:1;min-width:220px;border:1px solid #e6e8eb;border-radius:10px;padding:10px 12px;font-weight:600}
-    .right{margin-left:auto}
-    .small{font-size:12px;color:var(--muted)}
-
-    .badge{
-      display:inline-block;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:800;border:1px solid
-    }
-    .badge.v{background:#ecfff3;border-color:#b8f0cd;color:#0b6d3a}
-    .badge.i{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
-
-    .empty{padding:20px;text-align:center;color:var(--muted)}
+    :root{ --brand-red:#9b1c1c; --brand-gold:#fbbf24; --muted:#6b7280 }
+    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif }
+    body{ margin:0; background:#fafafa; color:#111; display:grid; place-items:center; min-height:100vh; padding:16px }
+    .card{ width:100%; max-width:520px; background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.08); overflow:hidden; border:1px solid #eee }
+    .header{ background:linear-gradient(135deg,var(--brand-red),#7c1111); color:#fff; padding:22px 20px }
+    .header h1{ margin:0; font-size:22px }
+    .subtitle{ opacity:.9; margin-top:6px; font-size:13px }
+    form{ padding:20px }
+    label{ display:block; font-size:13px; margin:14px 0 6px }
+    input{ width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:10px; font-size:15px; outline:none; transition:.2s }
+    input:focus{ border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(155,28,28,.12) }
+    .row{ display:flex; gap:10px }
+    .row>div{ flex:1 }
+    .muted{ font-size:12px; color:#6b7280; line-height:1.4 }
+    .btn{ margin-top:16px; width:100%; padding:12px 14px; border:none; border-radius:12px; background:var(--brand-gold); color:#111; font-weight:700; font-size:16px; cursor:pointer }
+    .btn:hover{ filter:brightness(.98) }
+    .alt{ padding:14px 20px; background:#fff; border-top:1px solid #eee; font-size:14px }
+    .alt a{ color:#9b1c1c; text-decoration:none; font-weight:600 }
+    .error{ background:#ffe8e8; color:#7c1111; border:1px solid #f2c4c4; padding:10px 12px; border-radius:10px; margin-top:10px; font-size:13px; display:none }
+    .ok{ background:#e8fff2; color:#0b6d3a; border:1px solid #c3efda; padding:10px 12px; border-radius:10px; margin-top:10px; font-size:13px; display:none }
+    .chip{ display:inline-block; margin-top:8px; background:#fff5d6; border:1px solid #f3c74d; color:#7c1111; border-radius:999px; padding:4px 10px; font-size:12px; font-weight:700 }
   </style>
 </head>
 <body>
-<header>Team Report</header>
-
-<main class="wrap">
-  <!-- Summary -->
-  <section class="card">
-    <div class="row" style="margin-bottom:6px">
-      
-      <span class="small">Counts refresh on load or when you click refresh.</span>
-      <button id="refreshBtn" class="btn tab right">Refresh</button>
+  <div class="card">
+    <div class="header">
+      <h1>Create your BAM account</h1>
+      <div class="subtitle">Business Advertising & Marketing</div>
     </div>
 
-    <table class="tbl" aria-label="Referral summary">
-      <thead>
-        <tr>
-          <th>Level</th>
-          <th>Total</th>
-          <th>Verified</th>
-          <th>Interns</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><b>Level A</b></td>
-          <td id="a_total">—</td>
-          <td id="a_ver">—</td>
-          <td id="a_int">—</td>
-        </tr>
-        <tr>
-          <td><b>Level B</b></td>
-          <td id="b_total">—</td>
-          <td id="b_ver">—</td>
-          <td id="b_int">—</td>
-        </tr>
-        <tr>
-          <td><b>Level C</b></td>
-          <td id="c_total">—</td>
-          <td id="c_ver">—</td>
-          <td id="c_int">—</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+    <form id="regForm" autocomplete="on">
+      <label for="name">Full Name</label>
+      <input id="name" type="text" required placeholder="write your name" />
 
-  <!-- Lists -->
-  <section class="card">
-    <div class="row" style="margin-bottom:10px">
-      <button class="btn tab active" data-tier="A">Level A</button>
-      <button class="btn tab" data-tier="B">Level B</button>
-      <button class="btn tab" data-tier="C">Level C</button>
-      <input id="searchBox" class="search" placeholder="Search name, email or phone…" />
-      <span class="small" id="rowCount"></span>
+      <label for="email">Email</label>
+      <input id="email" type="email" required placeholder="you@gmail.com" />
+
+      <label for="phone">Phone</label>
+      <input id="phone" type="tel" required placeholder="2567xxxxxxxx" />
+
+      <div class="row">
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" minlength="6" required placeholder="••••••••" />
+        </div>
+        <div>
+          <label for="confirm">Confirm Password</label>
+          <input id="confirm" type="password" minlength="6" required placeholder="••••••••" />
+        </div>
+      </div>
+
+      <div id="refChip" class="chip" style="display:none"></div>
+
+      <p class="muted">
+        Note down your password to keep remembering it. Press create account after filling in all the required information.
+      </p>
+
+      <div class="error" id="err"></div>
+      <div class="ok" id="ok"></div>
+
+      <button class="btn" type="submit">Create Account</button>
+    </form>
+
+    <div class="alt">
+      Already have an account? <a href="login.html">Log in</a>
     </div>
+  </div>
 
-    <table class="list" aria-label="Invited friends">
-      <thead>
-        <tr>
-          <th style="width:44%">Name</th>
-          <th style="width:32%">Phone</th>
-          <th style="width:24%">Level</th>
-        </tr>
-      </thead>
-      <tbody id="rows">
-        <tr><td colspan="3" class="empty">Loading…</td></tr>
-      </tbody>
-    </table>
-  </section>
-</main>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, collection, doc, setDoc, query, where, getDocs, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-  import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    /* Firebase config */
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.firebasestorage.app",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f"
+    };
 
-  /* Firebase */
-  const firebaseConfig = {
-    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
-    authDomain: "bam1-3d3e5.firebaseapp.com",
-    projectId: "bam1-3d3e5",
-    storageBucket: "bam1-3d3e5.firebasestorage.app",
-    messagingSenderId: "649603741902",
-    appId: "1:649603741902:web:e67f20363f485c0948789f"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
-  const auth = getAuth(app);
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const usersCol = collection(db,"users");
+    const $ = id=>document.getElementById(id);
+    const errBox=$("err"), okBox=$("ok"), refChip=$("refChip");
 
-  /* Helpers */
-  const $ = id => document.getElementById(id);
-  const LEVEL_ORDER = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // highest → lowest
+    function showError(m){errBox.style.display="block";errBox.textContent=m;okBox.style.display="none";}
+    function showOk(m){okBox.style.display="block";okBox.textContent=m;errBox.style.display="none";}
 
-  function highestVerified(u){
-    for (const code of LEVEL_ORDER){
-      if (u?.[code]?.status === "verified") return code;
+    function normalizeUGPhone(raw){
+      if(!raw)return null;
+      let s=(""+raw).trim().replace(/\D/g,"");
+      if(s.startsWith("0")&&s.length===10)return"256"+s.slice(1);
+      if(s.startsWith("256")&&s.length===12)return s;
+      if(s.length===9&&s.startsWith("7"))return"256"+s;
+      return null;
     }
-    return null;
-  }
-  function levelBadge(u){
-    const v = highestVerified(u);
-    return v
-      ? `<span class="badge v">${v}</span>`
-      : `<span class="badge i">intern</span>`;
-  }
 
-  const buckets = { A: [], B: [], C: [] };
+    async function findUserByInvite(code){
+      if(!code)return null;
+      const snap=await getDocs(query(usersCol,where("inviteCode","==",code.toUpperCase())));
+      if(snap.empty)return null;
+      const d=snap.docs[0];
+      return {uid:d.id,...d.data()};
+    }
 
-  async function loadTier(uid, tier){
-    let qy;
-    if (tier === "A") qy = query(collection(db,"users"), where("refA_uid","==", uid));
-    if (tier === "B") qy = query(collection(db,"users"), where("refB_uid","==", uid));
-    if (tier === "C") qy = query(collection(db,"users"), where("refC_uid","==", uid));
-    const snap = await getDocs(qy);
-    const arr = [];
-    snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
-    buckets[tier] = arr;
-  }
+    async function generateUniqueInviteCode(){
+      const alphabet="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      while(true){
+        const code=Array.from({length:6},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join("");
+        const snap=await getDocs(query(usersCol,where("inviteCode","==",code)));
+        if(snap.empty)return code;
+      }
+    }
 
-  function summarize(tier, ids){
-    const total = ids.length;
-    let verified = 0;
-    for (const u of ids){ if (highestVerified(u)) verified++; }
-    const interns = total - verified;
-    $(`${tier.toLowerCase()}_total`).textContent = total;
-    $(`${tier.toLowerCase()}_ver`).textContent   = verified;
-    $(`${tier.toLowerCase()}_int`).textContent   = interns;
-  }
+    /* 🔗 Smart chain resolver */
+    async function resolveReferrers(){
+      const p=new URLSearchParams(location.search);
+      const codeA=(p.get("inviteCode")||p.get("ref")||p.get("a")||"").toUpperCase();
+      if(!codeA)return {refA:null,refB:null,refC:null,refA_uid:null,refB_uid:null,refC_uid:null};
 
-  function renderList(tier){
-    const data = buckets[tier] || [];
-    const q = $("searchBox").value.trim().toLowerCase();
+      const aUser=await findUserByInvite(codeA);
+      if(!aUser)return {refA:null,refB:null,refC:null,refA_uid:null,refB_uid:null,refC_uid:null};
 
-    const filtered = q
-      ? data.filter(u=>{
-          const t = `${u.name||""} ${u.email||""} ${u.phone||""}`.toLowerCase();
-          return t.includes(q);
-        })
-      : data;
+      let refA=codeA, refA_uid=aUser.uid;
+      let refB=aUser.refA||null, refB_uid=aUser.refA_uid||null;
+      let refC=null, refC_uid=null;
 
-    $("rows").innerHTML = filtered.length
-      ? filtered.map(u=>`
-          <tr>
-            <td>${u.name || "—"}</td>
-            <td>${u.phone || "—"}</td>
-            <td>${levelBadge(u)}</td>
-          </tr>
-        `).join("")
-      : `<tr><td colspan="3" class="empty">No results.</td></tr>`;
+      // if refB exists, find its parent to form third tier
+      if(refB){
+        const bUser=await findUserByInvite(refB);
+        if(bUser){ refC=bUser.refA||null; refC_uid=bUser.refA_uid||null; }
+      }
 
-    $("rowCount").textContent = `${filtered.length} shown`;
-  }
+      refChip.style.display="inline-block";
+      refChip.textContent=`Referral chain → A:${refA||"-"} B:${refB||"-"} C:${refC||"-"}`;
 
-  async function loadAll(uid){
-    await loadTier(uid, "A");
-    await loadTier(uid, "B");
-    await loadTier(uid, "C");
+      return {refA,refB,refC,refA_uid,refB_uid,refC_uid};
+    }
 
-    summarize("A", buckets.A);
-    summarize("B", buckets.B);
-    summarize("C", buckets.C);
+    $("regForm").addEventListener("submit",async e=>{
+      e.preventDefault();
+      errBox.style.display="none";okBox.style.display="none";
 
-    document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
-    document.querySelector('.btn.tab[data-tier="A"]').classList.add("active");
-    renderList("A");
-  }
+      const name=$("name").value.trim();
+      const email=$("email").value.trim().toLowerCase();
+      const phone=normalizeUGPhone($("phone").value.trim());
+      const pass=$("password").value;
+      const confirm=$("confirm").value;
 
-  // UI wiring
-  document.querySelectorAll(".btn.tab").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
-      btn.classList.add("active");
-      renderList(btn.dataset.tier);
+      if(!name)return showError("Please enter your full name.");
+      if(!email)return showError("Please enter a valid email.");
+      if(!phone)return showError("Please enter a valid Ugandan phone number.");
+      if(pass.length<6)return showError("Password must be at least 6 characters.");
+      if(pass!==confirm)return showError("Passwords do not match.");
+
+      const refs=await resolveReferrers();
+      const myInvite=await generateUniqueInviteCode();
+
+      try{
+        const cred=await createUserWithEmailAndPassword(auth,email,pass);
+        await updateProfile(cred.user,{displayName:name});
+        const uid=cred.user.uid;
+
+        await setDoc(doc(db,"users",uid),{
+          uid,name,email,phone,
+          role:"member",
+          inviteCode:myInvite,
+          refA:refs.refA||null,
+          refA_uid:refs.refA_uid||null,
+          refB:refs.refB||null,
+          refB_uid:refs.refB_uid||null,
+          refC:refs.refC||null,
+          refC_uid:refs.refC_uid||null,
+          createdAt:serverTimestamp(),
+          updatedAt:serverTimestamp(),
+          referralCountA:0,referralCountB:0,referralCountC:0,
+          totalEarnings:0,mainWallet:0,commissionWallet:0
+        });
+
+        showOk("Account created successfully! Redirecting…");
+        setTimeout(()=>location.href="index.html",700);
+      }catch(err){
+        console.error(err);
+        let msg="Sign up failed. ";
+        if(err.code==="auth/email-already-in-use")msg+="This email is already registered.";
+        else if(err.code==="auth/invalid-email")msg+="Invalid email.";
+        else if(err.code==="auth/weak-password")msg+="Password too weak.";
+        else msg+="Please try again.";
+        showError(msg);
+      }
     });
-  });
-  $("searchBox").addEventListener("input", ()=>{
-    const active = document.querySelector(".btn.tab.active")?.dataset.tier || "A";
-    renderList(active);
-  });
-  $("refreshBtn").addEventListener("click", async ()=>{
-    const u = auth.currentUser;
-    if (u) await loadAll(u.uid);
-  });
 
-  onAuthStateChanged(auth, async (user)=>{
-    if (!user){ location.href = "login.html"; return; }
-    const usnap = await getDoc(doc(db,"users",user.uid));
-    if (!usnap.exists()){ location.href = "register.html"; return; }
-    await loadAll(user.uid);
-  });
-</script>
+    // visual hint if link has ?inviteCode=
+    (()=>{const p=new URLSearchParams(location.search);const c=(p.get("inviteCode")||p.get("ref")||"").toUpperCase();if(c){refChip.style.display="inline-block";refChip.textContent=`Using referral code: ${c}`;}})();
+  </script>
 </body>
 </html>
