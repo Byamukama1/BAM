@@ -16,7 +16,6 @@
       color:#fff;padding:16px 18px;font-weight:900;letter-spacing:.2px
     }
     .wrap{max-width:1000px;margin:0 auto;padding:16px 14px}
-
     .card{background:var(--card);border-radius:16px;border:1px solid var(--bd);
       box-shadow:0 10px 24px rgba(0,0,0,.06);padding:14px;margin-bottom:14px}
 
@@ -69,7 +68,7 @@
   <!-- Summary -->
   <section class="card">
     <div class="row" style="margin-bottom:6px">
-      <span class="small">Counts refresh on load or when you click refresh.</span>
+      <span class="small">Team counts refresh on load or when you click refresh.</span>
       <button id="refreshBtn" class="btn tab right">Refresh</button>
     </div>
 
@@ -83,24 +82,9 @@
         </tr>
       </thead>
       <tbody>
-        <tr>
-          <td><b>Level A</b></td>
-          <td id="a_total">—</td>
-          <td id="a_ver">—</td>
-          <td id="a_int">—</td>
-        </tr>
-        <tr>
-          <td><b>Level B</b></td>
-          <td id="b_total">—</td>
-          <td id="b_ver">—</td>
-          <td id="b_int">—</td>
-        </tr>
-        <tr>
-          <td><b>Level C</b></td>
-          <td id="c_total">—</td>
-          <td id="c_ver">—</td>
-          <td id="c_int">—</td>
-        </tr>
+        <tr><td><b>Level A</b></td><td id="a_total">—</td><td id="a_ver">—</td><td id="a_int">—</td></tr>
+        <tr><td><b>Level B</b></td><td id="b_total">—</td><td id="b_ver">—</td><td id="b_int">—</td></tr>
+        <tr><td><b>Level C</b></td><td id="c_total">—</td><td id="c_ver">—</td><td id="c_int">—</td></tr>
       </tbody>
     </table>
   </section>
@@ -120,7 +104,7 @@
         <tr>
           <th style="width:44%">Name</th>
           <th style="width:32%">Phone</th>
-          <th style="width:24%">Level</th>
+          <th style="width:24%">Status</th>
         </tr>
       </thead>
       <tbody id="rows">
@@ -135,7 +119,7 @@
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import { getFirestore, collection, query, where, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  /* Firebase config */
+  /* Firebase Config */
   const firebaseConfig = {
     apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
     authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -144,108 +128,106 @@
     messagingSenderId: "649603741902",
     appId: "1:649603741902:web:e67f20363f485c0948789f"
   };
+
   const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
   const auth = getAuth(app);
+  const db = getFirestore(app);
 
   const $ = id => document.getElementById(id);
-  const LEVEL_ORDER = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // highest → lowest
+  const LEVELS = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"]; // rank order
 
   function highestVerified(u){
-    for (const code of LEVEL_ORDER){
-      if (u?.[code]?.status === "verified") return code;
-    }
+    for(const lvl of LEVELS){ if(u?.[lvl]?.status==="verified") return lvl; }
     return null;
   }
-  function levelBadge(u){
+  function badge(u){
     const v = highestVerified(u);
     return v
       ? `<span class="badge v">${v}</span>`
-      : `<span class="badge i">intern</span>`;
+      : `<span class="badge i">Intern</span>`;
   }
 
-  const buckets = { A: [], B: [], C: [] };
+  const dataSets = {A:[],B:[],C:[]};
 
-  async function loadTier(uid, tier){
-    let qy;
-    if (tier === "A") qy = query(collection(db,"users"), where("refA_uid","==", uid));
-    if (tier === "B") qy = query(collection(db,"users"), where("refB_uid","==", uid));
-    if (tier === "C") qy = query(collection(db,"users"), where("refC_uid","==", uid));
-    const snap = await getDocs(qy);
-    const arr = [];
-    snap.forEach(d => arr.push({ id: d.id, ...d.data() }));
-    buckets[tier] = arr;
+  async function loadTier(uid,tier){
+    let q;
+    if(tier==="A") q=query(collection(db,"users"),where("refA_uid","==",uid));
+    if(tier==="B") q=query(collection(db,"users"),where("refB_uid","==",uid));
+    if(tier==="C") q=query(collection(db,"users"),where("refC_uid","==",uid));
+
+    const snap=await getDocs(q);
+    const arr=[];
+    snap.forEach(d=>arr.push({id:d.id,...d.data()}));
+
+    // Sort: verified levels first
+    arr.sort((a,b)=>{
+      const av = highestVerified(a)?1:0;
+      const bv = highestVerified(b)?1:0;
+      return bv - av;
+    });
+    dataSets[tier]=arr;
   }
 
-  function summarize(tier, ids){
-    const total = ids.length;
-    let verified = 0;
-    for (const u of ids){ if (highestVerified(u)) verified++; }
-    const interns = total - verified;
-    $(`${tier.toLowerCase()}_total`).textContent = total;
-    $(`${tier.toLowerCase()}_ver`).textContent   = verified;
-    $(`${tier.toLowerCase()}_int`).textContent   = interns;
+  function summarize(tier){
+    const list=dataSets[tier]||[];
+    const total=list.length;
+    const verified=list.filter(u=>highestVerified(u)).length;
+    const interns=total-verified;
+    $(`${tier.toLowerCase()}_total`).textContent=total;
+    $(`${tier.toLowerCase()}_ver`).textContent=verified;
+    $(`${tier.toLowerCase()}_int`).textContent=interns;
   }
 
   function renderList(tier){
-    const data = buckets[tier] || [];
-    const q = $("searchBox").value.trim().toLowerCase();
-
-    const filtered = q
-      ? data.filter(u=>{
-          const t = `${u.name||""} ${u.email||""} ${u.phone||""}`.toLowerCase();
-          return t.includes(q);
-        })
-      : data;
+    const arr=dataSets[tier]||[];
+    const q=$("searchBox").value.trim().toLowerCase();
+    const filtered=q?arr.filter(u=>{
+      const t=`${u.name||""} ${u.email||""} ${u.phone||""}`.toLowerCase();
+      return t.includes(q);
+    }):arr;
 
     $("rows").innerHTML = filtered.length
       ? filtered.map(u=>`
-          <tr>
-            <td>${u.name || "—"}</td>
-            <td>${u.phone || "—"}</td>
-            <td>${levelBadge(u)}</td>
-          </tr>
-        `).join("")
-      : `<tr><td colspan="3" class="empty">No results.</td></tr>`;
+        <tr>
+          <td>${u.name||"—"}</td>
+          <td>${u.phone||"—"}</td>
+          <td>${badge(u)}</td>
+        </tr>`).join("")
+      : `<tr><td colspan="3" class="empty">No results found.</td></tr>`;
 
     $("rowCount").textContent = `${filtered.length} shown`;
   }
 
   async function loadAll(uid){
-    await loadTier(uid, "A");
-    await loadTier(uid, "B");
-    await loadTier(uid, "C");
-
-    summarize("A", buckets.A);
-    summarize("B", buckets.B);
-    summarize("C", buckets.C);
-
-    document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
-    document.querySelector('.btn.tab[data-tier="A"]').classList.add("active");
+    await loadTier(uid,"A");
+    await loadTier(uid,"B");
+    await loadTier(uid,"C");
+    summarize("A"); summarize("B"); summarize("C");
     renderList("A");
   }
 
-  // UI wiring
   document.querySelectorAll(".btn.tab").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
+    btn.addEventListener("click",()=>{
       document.querySelectorAll(".btn.tab").forEach(b=>b.classList.remove("active"));
       btn.classList.add("active");
       renderList(btn.dataset.tier);
     });
   });
-  $("searchBox").addEventListener("input", ()=>{
-    const active = document.querySelector(".btn.tab.active")?.dataset.tier || "A";
+
+  $("searchBox").addEventListener("input",()=>{
+    const active=document.querySelector(".btn.tab.active")?.dataset.tier||"A";
     renderList(active);
   });
-  $("refreshBtn").addEventListener("click", async ()=>{
-    const u = auth.currentUser;
-    if (u) await loadAll(u.uid);
+
+  $("refreshBtn").addEventListener("click",async()=>{
+    const u=auth.currentUser;
+    if(u) await loadAll(u.uid);
   });
 
-  onAuthStateChanged(auth, async (user)=>{
-    if (!user){ location.href = "login.html"; return; }
-    const usnap = await getDoc(doc(db,"users",user.uid));
-    if (!usnap.exists()){ location.href = "register.html"; return; }
+  onAuthStateChanged(auth, async user=>{
+    if(!user){ location.href="login.html"; return; }
+    const usnap=await getDoc(doc(db,"users",user.uid));
+    if(!usnap.exists()){ location.href="register.html"; return; }
     await loadAll(user.uid);
   });
 </script>
