@@ -331,7 +331,7 @@
       if ((cur.usedBy||{})[me.uid] === true) throw new Error("You have already used this password.");
       const used = Number(cur.usedCount||0);
       const max  = Number(cur.maxWinners||10);
-      if (used >= max) throw new Error("This group spin is already full (10 winners).");
+      if (used >= max) throw new Error("You are a little bit late. wait the next luck 🤗");
 
       spinToIndex(idx, async ()=>{
         try{
