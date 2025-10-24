@@ -413,4 +413,74 @@
     setTimeout(()=>{ loader.style.display = "none"; loader.setAttribute("aria-busy","false"); }, 600);
   </script>
 </body>
+
+
+
+
+
+<body>
+  <!-- Startup Message Modal -->
+  <div id="welcomeModal" style="
+    position:fixed; inset:0;
+    background:rgba(0,0,0,0.6);
+    display:flex; align-items:center; justify-content:center;
+    z-index:999999; backdrop-filter:blur(3px);
+  ">
+    <div style="
+      background:#fff; border-radius:18px; padding:22px 18px;
+      max-width:360px; width:92%; color:#111; text-align:left;
+      box-shadow:0 10px 30px rgba(0,0,0,0.25); overflow-y:auto; max-height:80vh;
+      animation:fadeIn 0.5s ease;
+    ">
+      <h2 style="color:#9b1c1c; font-size:18px; margin-top:0; text-align:center;">
+        🎁 BAM Referral Rewards
+      </h2>
+
+      <p style="font-size:14px; line-height:1.6;">
+        <b>If you invite a B1 member:</b><br>
+        You earn a referral bonus of <b>UGX 8,000</b> plus a Heavy Spin of between <b>UGX 5,000 to 7,000</b> (and above).<br><br>
+
+        <b>If you invite a B2 member:</b><br>
+        You earn a referral bonus of <b>UGX 22,900</b> plus a Heavy Spin of between <b>UGX 15,000 to 30,000</b> (and above).<br><br>
+
+        <b>If you invite a B3 member:</b><br>
+        You earn a referral bonus of <b>UGX 62,500</b> plus a Heavy Spin of between <b>UGX 20,000 to 50,000</b> (and above).<br><br>
+
+        <b>If you invite a B4 member:</b><br>
+        You earn a referral bonus of <b>UGX 194,000</b> plus a Heavy Spin of between <b>UGX 30,000 to 60,000</b> (and above).<br><br>
+
+        <b>If you invite B5 to B9 members:</b><br>
+        You earn a referral bonus according to their package (which is much higher) plus a Heavy Spin of <b>UGX 100,000 or more</b>.
+      </p>
+
+      <div style="text-align:center; margin-top:18px;">
+        <button onclick="closeMessage()" style="
+          background:linear-gradient(135deg,#9b1c1c,#7c1111);
+          color:#fff; border:none; padding:10px 20px;
+          border-radius:40px; font-weight:700; font-size:15px;
+          cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,0.25);
+          transition:all .25s ease;
+        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          Okay 👍
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function closeMessage() {
+      const modal = document.getElementById('welcomeModal');
+      modal.style.transition = "opacity 0.5s ease";
+      modal.style.opacity = "0";
+      setTimeout(() => modal.style.display = "none", 500);
+    }
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from {opacity: 0; transform: scale(0.9);}
+      to {opacity: 1; transform: scale(1);}
+    }
+  </style>
+</body>
 </html>
