@@ -75,7 +75,6 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 
   <script>
-    // ===== Firebase config (yours) =====
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
       authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -89,31 +88,29 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // ===== Helpers =====
     const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
     const show = (msg, ok=false)=>{ document.getElementById('statusArea').innerHTML =
       `<div class="banner ${ok?'ok':''}">${msg}</div>`; };
     const toast = (msg, err=false)=>{ const n=document.getElementById('note'); n.textContent=msg; n.classList.toggle('err',err); n.style.display='block'; setTimeout(()=>n.style.display='none',2800); };
 
-    // ===== Levels (B1..B9) — deposit already includes +10,000 =====
+    // ===== Levels (B1 added at 30000, others shifted) =====
     const LEVELS = [
-      { id:'B1', name:'B1', deposit:   80000, each:  330, daily:  7,  grad:['#0ea5e9','#2563eb'] },
-      { id:'B2', name:'B2', deposit:  229000, each:  430, daily: 17,  grad:['#7c3aed','#4f46e5'] },
-      { id:'B3', name:'B3', deposit:  625000, each:  735, daily: 28,  grad:['#0284c7','#0ea5e9'] },
-      { id:'B4', name:'B4', deposit: 1940000, each: 1200, daily: 54,  grad:['#8b5cf6','#7c3aed'] },
-      { id:'B5', name:'B5', deposit: 5210000, each: 2250, daily: 80,  grad:['#16a34a','#22c55e'] },
-      { id:'B6', name:'B6', deposit:13480000, each: 3700, daily:130,  grad:['#f97316','#fb923c'] },
-      { id:'B7', name:'B7', deposit:30010000, each: 6500, daily:175,  grad:['#ef4444','#f43f5e'] },
-      { id:'B8', name:'B8', deposit:60010000, each: 8750, daily:260,  grad:['#0284c7','#2563eb'] },
-      { id:'B9', name:'B9', deposit:99010000, each:15000, daily:300,  grad:['#6d28d9','#7c3aed'] },
+      { id:'B1', name:'B1', deposit:   30000, each: 250, daily: 4,  grad:['#06b6d4','#0ea5e9'] },
+      { id:'B2', name:'B2', deposit:   80000, each: 330, daily: 7,  grad:['#0ea5e9','#2563eb'] },
+      { id:'B3', name:'B3', deposit:  229000, each: 430, daily:17,  grad:['#7c3aed','#4f46e5'] },
+      { id:'B4', name:'B4', deposit:  625000, each: 735, daily:28,  grad:['#0284c7','#0ea5e9'] },
+      { id:'B5', name:'B5', deposit: 1940000, each:1200, daily:54,  grad:['#8b5cf6','#7c3aed'] },
+      { id:'B6', name:'B6', deposit: 5210000, each:2250, daily:80,  grad:['#16a34a','#22c55e'] },
+      { id:'B7', name:'B7', deposit:13480000, each:3700, daily:130, grad:['#f97316','#fb923c'] },
+      { id:'B8', name:'B8', deposit:30010000, each:6500, daily:175, grad:['#ef4444','#f43f5e'] },
+      { id:'B9', name:'B9', deposit:60010000, each:8750, daily:260, grad:['#0284c7','#2563eb'] },
+      { id:'B10',name:'B10',deposit:99010000, each:15000,daily:300, grad:['#6d28d9','#7c3aed'] },
     ];
 
     let currentUser=null, userData=null, chosen=null;
 
-    // ---- level rank helpers (for demotion checks) ----
-    const levelIndex = id => LEVELS.findIndex(l => l.id === id); // B1=0 ... B9=8
+    const levelIndex = id => LEVELS.findIndex(l => l.id === id);
     function getCurrentLevelId() {
-      // highest verified wins
       for (let i=LEVELS.length-1; i>=0; i--){
         const id = LEVELS[i].id;
         if (userData && userData[id] && userData[id].status === 'verified') return id;
@@ -121,15 +118,12 @@
       return 'INTERN';
     }
 
-    // ===== Render =====
     function renderLevels(){
       const wrap = document.getElementById('levels-container');
       wrap.innerHTML = '';
-
       const currentId = getCurrentLevelId();
-
-      // Intern card: mark current only if no verified level
       const internIsCurrent = (currentId === 'INTERN');
+
       const intern = document.createElement('section');
       intern.className='level-card';
       intern.innerHTML = `
@@ -152,7 +146,6 @@
         const verified = status==='verified';
         const under = status==='under_review';
         const member = status==='joined' || verified;
-
         const isCurrent = (currentId === lv.id);
 
         const card = document.createElement('section');
@@ -184,7 +177,6 @@
       });
     }
 
-    // ===== Modal =====
     const modal = document.getElementById('confirmModal');
     const modalMsg = document.getElementById('modalMsg');
     document.getElementById('cancelBtn').onclick = ()=> modal.style.display='none';
@@ -195,7 +187,6 @@
       chosen = LEVELS.find(x=>x.id===id);
       if (!currentUser){ toast('Please log in first', true); return; }
 
-      // --- NEW: block demotion (joining below current verified) ---
       const currentId = getCurrentLevelId();
       if (currentId !== 'INTERN') {
         if (levelIndex(chosen.id) < levelIndex(currentId)) {
@@ -203,7 +194,6 @@
           return;
         }
       }
-      // -------------------------------------------------------------
 
       const need = chosen.deposit;
       if ((userData?.mainWallet||0) < need){ toast('Insufficient balance', true); return; }
@@ -211,11 +201,9 @@
       modal.style.display='flex';
     }
 
-    // ===== Transaction =====
     async function confirmJoin(){
       modal.style.display='none';
       if (!currentUser || !chosen) return;
-
       const userRef = db.collection('users').doc(currentUser.uid);
       try{
         await db.runTransaction(async (tx)=>{
@@ -249,7 +237,6 @@
       }
     }
 
-    // ===== Auth + user loading =====
     async function loadUser(){
       const uref = db.collection('users').doc(currentUser.uid);
       const snap = await uref.get();
@@ -267,7 +254,6 @@
       await loadUser();
     });
 
-    // first paint
     renderLevels();
   </script>
 </body>
