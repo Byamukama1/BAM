@@ -25,7 +25,6 @@
     }
     .table-wrap{border:2px solid var(--brand);border-radius:10px;overflow-x:auto}
     table{width:100%;border-collapse:collapse}
-    /* 6-column layout (unchanged) */
     colgroup col:nth-child(1){width:14%}
     colgroup col:nth-child(2){width:22%}
     colgroup col:nth-child(3){width:18%}
@@ -38,8 +37,6 @@
     tbody tr:nth-child(odd){background:var(--rowA)}
     tbody tr:nth-child(even){background:var(--rowB)}
     .lvl{font-weight:900;color:var(--brand-d)}
-
-    /* ===== Enhanced Explanation Design (only styles updated) ===== */
     .understanding{margin-top:24px}
     .understanding h2{
       margin:0 0 14px;text-align:center;font-size:22px;font-weight:900;color:var(--brand-d);
@@ -49,76 +46,48 @@
       content:"";display:block;width:120px;height:4px;margin:10px auto 0;border-radius:999px;
       background:linear-gradient(90deg,transparent,var(--brand),var(--brand-d),transparent)
     }
-
-    /* Card look */
     .step{
-      position:relative;
-      background:var(--paper);
-      border:1px solid #efd0d0;
-      border-radius:16px;
-      padding:16px 16px 16px 64px;
-      margin:14px 0;
-      box-shadow:0 8px 22px rgba(155,28,28,.08);
+      position:relative;background:var(--paper);border:1px solid #efd0d0;border-radius:16px;
+      padding:16px 16px 16px 64px;margin:14px 0;box-shadow:0 8px 22px rgba(155,28,28,.08);
     }
-    /* Numbered badges */
     .understanding{counter-reset:step}
     .step::before{
-      counter-increment:step;
-      content:counter(step);
+      counter-increment:step;content:counter(step);
       position:absolute;left:16px;top:16px;width:36px;height:36px;border-radius:50%;
       display:grid;place-items:center;color:#fff;font-weight:900;
-      background:conic-gradient(from 210deg, var(--brand) 0 60%, var(--brand-d) 60% 100%);
+      background:conic-gradient(from 210deg,var(--brand) 0 60%,var(--brand-d) 60% 100%);
       box-shadow:0 4px 12px rgba(155,28,28,.25);
     }
-
     .step h3{margin:0 0 8px;font-size:16px;color:var(--brand-d)}
     .step p{margin:8px 0;font-size:14px;line-height:1.65;color:#2b2626}
     .highlight{font-weight:800;color:var(--brand-d)}
     .note{color:var(--muted);font-size:12.5px;margin-top:4px}
-
-    /* Lists with custom checkmarks */
     .step ul{margin:8px 0 0 0;padding:0;list-style:none}
-    .step li{
-      position:relative;padding-left:28px;margin:8px 0;font-size:14px;line-height:1.55
-    }
+    .step li{position:relative;padding-left:28px;margin:8px 0;font-size:14px;line-height:1.55}
     .step li::before{
       content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:6px;
       display:grid;place-items:center;color:#fff;font-size:12px;font-weight:900;
       background:linear-gradient(135deg,var(--brand),var(--brand-d));
       box-shadow:0 3px 8px rgba(155,28,28,.2)
     }
-
-    /* Subtle accent boxes for small notes */
     .mini{
-      display:inline-block;
-      background:var(--okbg);
-      color:var(--ok);
-      border:1px solid #bef7df;
-      border-radius:999px;
-      padding:4px 10px;
-      font-size:12.5px;
-      margin-top:6px
+      display:inline-block;background:var(--okbg);color:var(--ok);border:1px solid #bef7df;
+      border-radius:999px;padding:4px 10px;font-size:12.5px;margin-top:6px
     }
-
-    /* Responsive layout: show steps in two columns on wide screens */
     @media (min-width:900px){
-      .understanding .grid{
-        display:grid;grid-template-columns:1fr 1fr;gap:14px
-      }
+      .understanding .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .understanding .grid .step{margin:0}
     }
   </style>
 </head>
 <body>
-  
+
   <main class="wrap">
-    <div class="title-strip">Employee Level Income Details </div>
+    <div class="title-strip">Employee Level Income Details</div>
 
     <div class="table-wrap">
       <table>
-        <colgroup>
-          <col><col><col><col><col><col>
-        </colgroup>
+        <colgroup><col><col><col><col><col><col></colgroup>
         <thead>
           <tr>
             <th>Level</th>
@@ -130,20 +99,21 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class="lvl">B1</td><td>80,000</td><td>2,310</td><td>7</td><td>330</td><td>231,000</td></tr>
-          <tr><td class="lvl">B2</td><td>229,000</td><td>7,310</td><td>17</td><td>430</td><td>731,000</td></tr>
-          <tr><td class="lvl">B3</td><td>625,000</td><td>20,580</td><td>28</td><td>735</td><td>2,058,000</td></tr>
-          <tr><td class="lvl">B4</td><td>1,940,000</td><td>64,800</td><td>54</td><td>1,200</td><td>6,480,000</td></tr>
-          <tr><td class="lvl">B5</td><td>5,210,000</td><td>180,000</td><td>80</td><td>2,250</td><td>18,000,000</td></tr>
-          <tr><td class="lvl">B6</td><td>14,000,000</td><td>481,000</td><td>130</td><td>3,700</td><td>48,100,000</td></tr>
-          <tr><td class="lvl">B7</td><td>30,000,000</td><td>1,137,500</td><td>175</td><td>6,500</td><td>113,750,000</td></tr>
-          <tr><td class="lvl">B8</td><td>60,000,000</td><td>2,000,000</td><td>260</td><td>8,750</td><td>200,000,000</td></tr>
-          <tr><td class="lvl">B9</td><td>99,000,000</td><td>4,000,000</td><td>300</td><td>15,000</td><td>400,000,000</td></tr>
+          <tr><td class="lvl">B1</td><td>30,000</td><td>1,000</td><td>4</td><td>250</td><td>100,000</td></tr>
+          <tr><td class="lvl">B2</td><td>80,000</td><td>2,310</td><td>7</td><td>330</td><td>231,000</td></tr>
+          <tr><td class="lvl">B3</td><td>229,000</td><td>7,310</td><td>17</td><td>430</td><td>731,000</td></tr>
+          <tr><td class="lvl">B4</td><td>625,000</td><td>20,580</td><td>28</td><td>735</td><td>2,058,000</td></tr>
+          <tr><td class="lvl">B5</td><td>1,940,000</td><td>64,800</td><td>54</td><td>1,200</td><td>6,480,000</td></tr>
+          <tr><td class="lvl">B6</td><td>5,210,000</td><td>180,000</td><td>80</td><td>2,250</td><td>18,000,000</td></tr>
+          <tr><td class="lvl">B7</td><td>14,000,000</td><td>481,000</td><td>130</td><td>3,700</td><td>48,100,000</td></tr>
+          <tr><td class="lvl">B8</td><td>30,000,000</td><td>1,137,500</td><td>175</td><td>6,500</td><td>113,750,000</td></tr>
+          <tr><td class="lvl">B9</td><td>60,000,000</td><td>2,000,000</td><td>260</td><td>8,750</td><td>200,000,000</td></tr>
+          <tr><td class="lvl">B10</td><td>99,000,000</td><td>4,000,000</td><td>300</td><td>15,000</td><td>400,000,000</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- EXPLANATION (content unchanged; only visual design improved) -->
+    <!-- Explanation (unchanged content, design preserved) -->
     <section class="understanding" aria-label="Understanding the 100-day ad-watch plan">
       <h2>How the 100-Day Ad-Watching Plan Works</h2>
 
@@ -154,7 +124,7 @@
           <ul>
             <li>Open the advert from your task list.</li>
             <li>Watch for at least the minimum time shown on the Claim button (e.g., <span class="highlight">10 seconds</span>).</li>
-            <li>Tap <span class="highlight">Claim</span> in the app to record your view and receive the reward.You have to click claim reward after watching</li>
+            <li>Tap <span class="highlight">Claim</span> in the app to record your view and receive the reward. You have to click claim reward after watching.</li>
           </ul>
           <span class="mini">If you close the video early or don’t press <b>Claim reward</b>, the system cannot reward that task.</span>
         </article>
@@ -181,18 +151,18 @@
         </article>
 
         <article class="step">
-          <h3>5) Worked Example — Level B3</h3>
-          <p><b>Start:</b> Deposit <span class="highlight">UGX 625,000</span> to unlock B3.</p>
+          <h3>5) Worked Example — Level B4</h3>
+          <p><b>Start:</b> Deposit <span class="highlight">UGX 625,000</span> to unlock B4.</p>
           <p><b>Daily work:</b> Complete <span class="highlight">28 tasks</span>, each paying <span class="highlight">UGX 735</span>.</p>
           <p><b>Daily income:</b> 28 × 735 = <span class="highlight">UGX 20,580</span>.</p>
           <p><b>Break-even:</b> 625,000 ÷ 20,580 ≈ <span class="highlight">31 days</span> (about one month).</p>
           <p><b>100-day total:</b> 20,580 × 100 = <span class="highlight">UGX 2,058,000</span>.</p>
           <p><b>Clear profit after 100 days:</b> 2,058,000 − 625,000 = <span class="highlight">UGX 1,433,000</span>.</p>
-          <p class="note">Why B3 is popular: reasonable deposit, steady daily income, and a quick break-even.</p>
+          <p class="note">Why B4 is popular: reasonable deposit, steady daily income, and a quick break-even.</p>
         </article>
 
         <article class="step">
-          <h3>6) Worked Example — Level B7</h3>
+          <h3>6) Worked Example — Level B8</h3>
           <p><b>Start:</b> Deposit <span class="highlight">UGX 30,000,000</span>.</p>
           <p><b>Daily work:</b> Complete <span class="highlight">175 tasks</span>, each paying <span class="highlight">UGX 6,500</span>.</p>
           <p><b>Daily income:</b> 175 × 6,500 = <span class="highlight">UGX 1,137,500</span>.</p>
@@ -206,8 +176,7 @@
           <h3>7) Quality & compliance rules</h3>
           <ul>
             <li>Always watch within the app and claim from the in-app button—<b>external or repeated tabs won’t count</b>.</li>
-            
-            <li>Keep the video visible for the full countdown. Muting is allowed</li>
+            <li>Keep the video visible for the full countdown. Muting is allowed.</li>
           </ul>
         </article>
 
