@@ -139,12 +139,12 @@
     const UGX = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
     const todayKey = ()=> new Date().toISOString().slice(0,10);
 
-    const LEVELS_DESC = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+    const LEVELS_DESC = ["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"];
     const MIN_BY_LEVEL = {
-      INTERN: 5000, B1: 5000, B2: 15000, B3: 45000, B4: 150000,
-      B5: 370000, B6: 980000, B7: 3000000, B8: 8500000, B9: 15000000,
+      INTERN: 5000, B1: 3000, B2: 5000, B3: 15000, B4: 45000,
+      B5: 150000, B6: 370000, B7: 980000, B8: 3000000, B9: 8500000, B10: 15000000,
     };
-    const LADDER = [5000,15000,45000,150000,370000,980000,3000000,8500000,15000000];
+    const LADDER = [3000,5000,15000,45000,150000,370000,980000,3000000,8500000,15000000];
 
     function highestVerifiedLevel(u){
       for (const code of LEVELS_DESC){
@@ -359,6 +359,6 @@
         }
       };
     });
-  </script>
+    </script>
 </body>
 </html>
