@@ -17,21 +17,13 @@
     .wrap{max-width:1100px;margin:0 auto;padding:14px}
     .muted{color:var(--muted);font-size:12px}
     .card{background:#fff;border-radius:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);padding:12px}
-
-    /* Table (no horizontal scroll) */
     .table-wrap{overflow-x:hidden}
     table{width:100%;border-collapse:collapse;table-layout:fixed}
     th,td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
     th{background:#fafafa;font-weight:900;color:#7c1111}
     tr:last-child td{border-bottom:none}
     td{word-wrap:break-word;white-space:normal}
-
-    /* 4 compact columns */
-    .col-type{width:22%}
-    .col-amt{width:26%}
-    .col-date{width:26%}
-    .col-status{width:26%}
-
+    .col-type{width:22%}.col-amt{width:26%}.col-date{width:26%}.col-status{width:26%}
     .pill{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:900}
     .p-dep{background:#eef2ff;border:1px solid #c7d2fe}
     .p-wdr{background:#e8fff2;border:1px solid #c3efda}
@@ -56,14 +48,14 @@
         <tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
       </table>
     </div>
-    <p class="muted" style="margin-top:6px">These are your deposits, withdraws, funds, and upgrades. Newest first.</p>
+    <p class="muted" style="margin-top:6px">These are your deposits, withdrawals, funds, and upgrades. Newest first.</p>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import {
-      getFirestore, collection, getDocs, query, where
+      getFirestore, collection, getDocs, query, where, doc, getDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
     /* ---------- Firebase ---------- */
@@ -73,41 +65,51 @@
       projectId: "bam1-3d3e5",
       storageBucket: "bam1-3d3e5.firebasestorage.app",
       messagingSenderId: "649603741902",
-      appId: "1:649603741902:web:e67f20363f485c0948789f",
-      measurementId: "G-W2DY026FXB"
+      appId: "1:649603741902:web:e67f20363f485c0948789f"
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db  = getFirestore(app);
 
     const $ = id => document.getElementById(id);
-    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
-    const tsToMs = (v)=> v?.seconds ? v.seconds*1000 : (typeof v === 'number' ? v : null);
-    const fmtDateOnly = (ms)=> new Date(ms||Date.now()).toLocaleDateString(); // date only
 
+    /* Currency setup */
+    const symbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+    const rates   = { UGX:1, NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005 };
+    let userCurrency = "UGX";
+
+    const convert = (n)=>Math.floor(Number(n||0)*(rates[userCurrency]||1));
+    const fmt = (n)=>`${symbols[userCurrency]||"UGX"} ${convert(n).toLocaleString()}`;
+    const tsToMs = (v)=> v?.seconds ? v.seconds*1000 : (typeof v==='number'?v:Date.now());
+    const fmtDateOnly = (ms)=> new Date(ms||Date.now()).toLocaleDateString();
+
+    /* Type tag display */
     function row(rec){
-      const typePill =
-        rec.type==='deposit' ? '<span class="pill p-dep">deposit</span>' :
-        rec.type==='withdraw' ? '<span class="pill p-wdr">withdraw</span>' :
-        rec.type==='fund' ? '<span class="pill p-fnd">fund</span>' :
-        '<span class="pill p-upg">upgrade</span>';
+      const typeTag =
+        rec.type==="deposit" ? '<span class="pill p-dep">Deposit</span>' :
+        rec.type==="withdraw" ? '<span class="pill p-wdr">Withdrawal</span>' :
+        rec.type==="fund" ? '<span class="pill p-fnd">Fund Bonus</span>' :
+        '<span class="pill p-upg">Level Upgrade</span>';
       return `
         <tr>
-          <td class="col-type">${typePill}</td>
-          <td class="col-amt">${UGX(rec.amount||0)}</td>
+          <td class="col-type">${typeTag}</td>
+          <td class="col-amt">${fmt(rec.amount||0)}</td>
           <td class="col-date">${fmtDateOnly(rec.dateMs)}</td>
           <td class="col-status">${rec.status || '—'}</td>
-        </tr>
-      `;
+        </tr>`;
     }
 
     function render(records){
       const tb = $('recordsTable').querySelector('tbody');
-      if (!records.length){
-        tb.innerHTML = `<tr><td colspan="4" class="muted">No records.</td></tr>`;
-        return;
-      }
-      tb.innerHTML = records.map(row).join('');
+      tb.innerHTML = records.length
+        ? records.map(row).join('')
+        : `<tr><td colspan="4" class="muted">No records.</td></tr>`;
+    }
+
+    async function getUserCurrency(uid){
+      const ref = doc(db,"countries",uid);
+      const snap = await getDoc(ref);
+      return snap.exists()? (snap.data().country || "UGX") : "UGX";
     }
 
     async function loadMyRecords(uid){
@@ -117,58 +119,38 @@
       const depSnap = await getDocs(query(collection(db,'deposits'), where('uid','==', uid)));
       depSnap.forEach(d=>{
         const v = d.data();
-        results.push({
-          type:'deposit',
-          amount: Number(v.amount||0),
-          status: v.status || '',
-          dateMs: tsToMs(v.createdAt) ?? v.createdAtMs ?? Date.now()
-        });
+        results.push({type:'deposit',amount:Number(v.amount||0),status:v.status||'',dateMs:tsToMs(v.createdAt)});
       });
 
       // withdraws
       const wSnap = await getDocs(query(collection(db,'withdraws'), where('uid','==', uid)));
       wSnap.forEach(d=>{
         const v = d.data();
-        results.push({
-          type:'withdraw',
-          amount: Number(v.netAmount ?? v.amount ?? 0),
-          status: v.status || '',
-          dateMs: tsToMs(v.createdAt) ?? v.createdAtMs ?? Date.now()
-        });
+        results.push({type:'withdraw',amount:Number(v.netAmount ?? v.amount ?? 0),status:v.status||'',dateMs:tsToMs(v.createdAt)});
       });
 
       // funds
       const fSnap = await getDocs(query(collection(db,'funds'), where('uid','==', uid)));
       fSnap.forEach(d=>{
         const v = d.data();
-        results.push({
-          type:'fund',
-          amount: Number(v.amount||0),
-          status: v.status || '',
-          dateMs: tsToMs(v.createdAt) ?? v.createdAtMs ?? Date.now()
-        });
+        results.push({type:'fund',amount:Number(v.amount||0),status:v.status||'',dateMs:tsToMs(v.createdAt)});
       });
 
       // upgrades
       const uSnap = await getDocs(query(collection(db,'upgrades'), where('uid','==', uid)));
       uSnap.forEach(d=>{
         const v = d.data();
-        const status = v.toLevel ? `to ${v.toLevel}` : 'upgrade';
-        results.push({
-          type:'upgrade',
-          amount: Number(v.newAmountPaid || 0),
-          status,
-          dateMs: tsToMs(v.createdAt) ?? Date.now()
-        });
+        const status = v.toLevel ? `to ${v.toLevel}` : 'Upgrade';
+        results.push({type:'upgrade',amount:Number(v.newAmountPaid || 0),status,dateMs:tsToMs(v.createdAt)});
       });
 
-      // newest first
       results.sort((a,b)=> b.dateMs - a.dateMs);
       render(results);
     }
 
-    onAuthStateChanged(auth, (user)=>{
-      if (!user){ location.href = 'login.html'; return; }
+    onAuthStateChanged(auth, async(user)=>{
+      if (!user){ location.href='login.html'; return; }
+      userCurrency = await getUserCurrency(user.uid);
       loadMyRecords(user.uid);
     });
   </script>
