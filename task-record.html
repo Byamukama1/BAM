@@ -36,7 +36,6 @@
       border-top-color:var(--brand);animation:spin .8s linear infinite;margin:0 auto 10px}
     @keyframes spin{to{transform:rotate(360deg)}}
 
-    /* Bottom nav (same as other pages) */
     .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);
       display:flex;justify-content:space-around;padding:10px 8px 12px;z-index:10;backdrop-filter:blur(4px);
       box-shadow:0 -6px 20px rgba(0,0,0,.06)}
@@ -61,7 +60,7 @@
       <div class="summary">
         <div class="chip" id="totalDays">Days: 0</div>
         <div class="chip" id="totalTasks">Tasks: 0</div>
-        <div class="chip" id="totalEarned">Earned: UGX 0</div>
+        <div class="chip" id="totalEarned">Earned: 0</div>
       </div>
       <div class="muted">Date • Tasks • Amount earned</div>
       <div id="list"></div>
@@ -100,18 +99,30 @@
     const db = getFirestore(app);
 
     const $ = (id)=>document.getElementById(id);
-    const fmt = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
     const hideOverlay = ()=>{ const el = document.getElementById('pageLoading'); if(el) el.style.display='none'; };
 
+    // Currency settings
+    const symbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+    const rates   = { UGX:1, NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005 };
+    let userCurrency = "UGX";
+
+    const fmt = (n)=>`${symbols[userCurrency]||"UGX"} ${Math.floor(Number(n||0)*(rates[userCurrency]||1)).toLocaleString()}`;
+
+    async function getUserCurrency(uid){
+      try{
+        const ref = doc(db,"countries",uid);
+        const snap = await getDoc(ref);
+        return snap.exists()? (snap.data().country || "UGX") : "UGX";
+      }catch{ return "UGX"; }
+    }
+
     async function loadDailySummary(uid){
-      // Read the most recent events and group by dateKey
       const evCol = collection(db,"tasks",uid,"events");
       const qy = query(evCol, orderBy("dateKey","desc"), orderBy("createdAt","desc"), limit(500));
       const snap = await getDocs(qy);
 
-      const days = new Map(); // dateKey -> {count,total}
-      let allTasks = 0;
-      let allEarned = 0;
+      const days = new Map(); 
+      let allTasks = 0, allEarned = 0;
 
       snap.forEach(d=>{
         const v = d.data();
@@ -150,7 +161,6 @@
       $("totalEarned").textContent = `Earned: ${fmt(allEarned)}`;
     }
 
-    // Optional: ensure 'createdAt' ordering is available — fall back gracefully if missing
     async function ensureAnyEvent(uid){
       const ref = doc(db,"tasks",uid);
       await getDoc(ref).catch(()=>{});
@@ -159,6 +169,7 @@
     onAuthStateChanged(auth, async (user)=>{
       if (!user){ location.href="login.html"; return; }
       try{
+        userCurrency = await getUserCurrency(user.uid);
         await ensureAnyEvent(user.uid);
         await loadDailySummary(user.uid);
       } finally {
