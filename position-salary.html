@@ -34,34 +34,17 @@
 
 <main class="wrap">
 
-  <!-- Salary table (no requirements text inside) -->
+  <!-- Salary table -->
   <section class="card">
     <h3 class="h4">Positions & Salaries</h3>
-    <table aria-label="Positions and salaries">
+    <table aria-label="Positions and salaries" id="salaryTable">
       <thead>
         <tr>
           <th>Position</th>
-          <th>Monthly Salary (UGX)</th>
+          <th>Monthly Salary</th>
         </tr>
       </thead>
-      <tbody>
-        <tr>
-          <td>Adverts collector</td>
-          <td>210,000</td>
-        </tr>
-        <tr>
-          <td>Intern guider</td>
-          <td>510,000</td>
-        </tr>
-        <tr>
-          <td>Senior Team leader</td>
-          <td>1,050,000</td>
-        </tr>
-        <tr>
-          <td>Regional supervisor</td>
-          <td>4,300,000</td>
-        </tr>
-      </tbody>
+      <tbody id="salaryRows"></tbody>
     </table>
 
     <div class="row" style="margin-top:10px">
@@ -73,26 +56,24 @@
     <div id="status" class="status"></div>
   </section>
 
-  <!-- Requirements (moved here) -->
+  <!-- Requirements -->
   <section class="card">
     <h3 class="h4">Requirements</h3>
     <ul class="req muted">
-      <li><b>Adverts collector</b> — <b>20</b> direct verified users & <b>10</b> referrals who paid for adverts.</li>
-      <li><b>Intern guider</b> — <b>40</b> direct verified users & <b>20</b> referrals who paid for adverts.</li>
-      <li><b>Senior Team leader</b> — <b>200</b> direct verified users & <b>50</b> referrals who paid for adverts.</li>
-      <li><b>Regional supervisor</b> — <b>500</b> direct verified users & <b>100</b> referrals who paid for adverts.</li>
+      <li><b>Adverts collector</b> — 20 direct verified users & 10 referrals who paid for adverts.</li>
+      <li><b>Intern guider</b> — 40 direct verified users & 20 referrals who paid for adverts.</li>
+      <li><b>Senior Team leader</b> — 200 direct verified users & 50 referrals who paid for adverts.</li>
+      <li><b>Regional supervisor</b> — 500 direct verified users & 100 referrals who paid for adverts.</li>
     </ul>
   </section>
 
-  <!-- How eligibility is checked -->
   <section class="card">
     <h3 class="h4">How eligibility is checked</h3>
     <ul class="muted" style="line-height:1.55;padding-left:18px;margin:8px 0">
-      <li><b>Direct verified users</b> are people you referred (your code) whose account shows any level (B1–B9) with status <b>verified</b>.</li>
-      <li><b>Referrals who paid for adverts</b> are unique users with at least one <b>approved & paid</b> advert in <code>adverts</code> that is tagged with your <b>referrerA_uid</b>.</li>
-      <li>We always award the <b>highest</b> role you qualify for. Clicking <b>REQUEST SALARY</b> creates a record in <code>salaries</code> with <b>pending</b> status for admin review.</li>
+      <li>Direct verified users = people you referred whose account shows any verified level (B1–B9).</li>
+      <li>Referrals who paid for adverts = unique users with approved & paid adverts linked to your referral.</li>
+      <li>Clicking <b>REQUEST SALARY</b> creates a record in <code>salaries</code> marked pending for admin approval.</li>
     </ul>
-    <p class="muted">Tip: If you need guidance on how to reach a salary level, contact your manager.</p>
   </section>
 
 </main>
@@ -105,179 +86,153 @@
     addDoc, serverTimestamp, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-  /* ---------- Firebase ---------- */
+  /* Firebase Setup */
   const firebaseConfig = {
     apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
     authDomain: "bam1-3d3e5.firebaseapp.com",
     projectId: "bam1-3d3e5",
     storageBucket: "bam1-3d3e5.firebasestorage.app",
     messagingSenderId: "649603741902",
-    appId: "1:649603741902:web:e67f20363f485c0948789f",
-    measurementId: "G-W2DY026FXB"
+    appId: "1:649603741902:web:e67f20363f485c0948789f"
   };
   const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+  const db = getFirestore(app);
   const auth = getAuth(app);
 
-  /* ---------- UI helpers ---------- */
-  const $ = id => document.getElementById(id);
-  const statusEl = $("status");
-  const countsEl = $("youCounts");
-  const tagEl = $("eligibilityTag");
-  const show = (msg, ok=false)=>{ statusEl.textContent = msg; statusEl.className = "status " + (ok?"ok":"err"); };
+  /* ---------- Currency Conversion ---------- */
+  const currencySymbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+  const currencyRates   = { NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005, UGX:1 };
+  let userCountry = "UGX";
 
-  /* ---------- Role thresholds ---------- */
+  const convert = (n)=> Math.floor(Number(n||0)*(currencyRates[userCountry]||1));
+  const fmt = (n)=> `${currencySymbols[userCountry]||"UGX"} ${convert(n).toLocaleString()}`;
+
+  const $ = id => document.getElementById(id);
+  const show = (msg, ok=false)=>{ $("status").textContent = msg; $("status").className = "status " + (ok?"ok":"err"); };
+
+  /* ---------- Salary Definitions ---------- */
   const POSITIONS = [
-    { key:"regional_supervisor", label:"Regional supervisor", salary: 4300000, needVerified: 500, needPaid: 100 },
-    { key:"senior_team_leader", label:"Senior Team leader", salary: 1050000, needVerified: 200, needPaid: 50 },
-    { key:"intern_guider",      label:"Intern guider",      salary:  510000, needVerified:  40, needPaid: 20 },
-    { key:"adverts_collector",  label:"Adverts collector",  salary:  210000, needVerified:  20, needPaid: 10 },
+    { key:"regional_supervisor", label:"Regional supervisor", salaryUGX:4300000, needVerified:500, needPaid:100 },
+    { key:"senior_team_leader", label:"Senior Team leader", salaryUGX:1050000, needVerified:200, needPaid:50 },
+    { key:"intern_guider", label:"Intern guider", salaryUGX:510000, needVerified:40, needPaid:20 },
+    { key:"adverts_collector", label:"Adverts collector", salaryUGX:210000, needVerified:20, needPaid:10 }
   ];
 
-  /* ---------- Verification helper (B1..B9 any verified) ---------- */
-  function isUserVerified(u){
-    const levels = ["B1","B2","B3","B4","B5","B6","B7","B8","B9"];
-    return levels.some(k => u?.[k]?.status === "verified");
+  /* ---------- Firebase Helpers ---------- */
+  async function getUserCountry(uid){
+    const ref = doc(db,"countries",uid);
+    const snap = await getDoc(ref);
+    return snap.exists()? (snap.data().country||"UGX") : "UGX";
   }
 
-  let me=null;
+  function isUserVerified(u){
+    const levels=["B1","B2","B3","B4","B5","B6","B7","B8","B9"];
+    return levels.some(k=>u?.[k]?.status==="verified");
+  }
 
   async function countDirectVerified(uid){
-    const q = query(collection(db,"users"), where("refA_uid","==", uid));
-    const snap = await getDocs(q);
-    let cnt = 0;
-    snap.forEach(d => { if (isUserVerified(d.data())) cnt++; });
-    return cnt;
+    const q=query(collection(db,"users"),where("refA_uid","==",uid));
+    const snap=await getDocs(q);
+    let c=0; snap.forEach(d=>{if(isUserVerified(d.data()))c++;});
+    return c;
   }
 
   async function countPaidAdvertReferrals(uid){
-    const q = query(
-      collection(db,"adverts"),
-      where("referrerA_uid","==", uid),
-      where("paid","==", true)
-    );
-    const snap = await getDocs(q);
-    const uids = new Set();
-    snap.forEach(d => {
-      const a = d.data();
-      if (a.uid) uids.add(a.uid);
-      else uids.add("unknown:"+d.id);
-    });
-    return uids.size;
+    const q=query(collection(db,"adverts"),where("referrerA_uid","==",uid),where("paid","==",true));
+    const snap=await getDocs(q);
+    const set=new Set();
+    snap.forEach(d=>{const a=d.data();if(a.uid)set.add(a.uid);});
+    return set.size;
   }
 
-  function highestEligibleRole(vCount, pCount){
-    for (const pos of POSITIONS){
-      if (vCount >= pos.needVerified && pCount >= pos.needPaid) return pos;
-    }
-    return null;
+  function highestEligibleRole(vCount,pCount){
+    for(const pos of POSITIONS){
+      if(vCount>=pos.needVerified && pCount>=pos.needPaid)return pos;
+    } return null;
   }
 
   async function alreadyPending(uid, roleKey){
-    const q = query(
-      collection(db,"salaries"),
-      where("uid","==", uid),
-      where("roleKey","==", roleKey),
-      where("status","==","pending"),
-      orderBy("createdAt","desc"),
-      limit(1)
-    );
-    const s = await getDocs(q);
+    const q=query(collection(db,"salaries"),where("uid","==",uid),where("roleKey","==",roleKey),
+      where("status","==","pending"),orderBy("createdAt","desc"),limit(1));
+    const s=await getDocs(q);
     return !s.empty;
   }
 
-  // NEW: check whether user has already requested this role in the current calendar month
-  async function hasRequestedThisMonth(uid, roleKey){
-    // start of current month (local)
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-
-    // Query for any salary requests for this role created on/after startOfMonth
-    const q = query(
-      collection(db,"salaries"),
-      where("uid","==", uid),
-      where("roleKey","==", roleKey),
-      where("createdAt", ">=", startOfMonth)
-    );
-    const snap = await getDocs(q);
-    return !snap.empty;
+  async function hasRequestedThisMonth(uid,roleKey){
+    const now=new Date();
+    const start=new Date(now.getFullYear(),now.getMonth(),1);
+    const q=query(collection(db,"salaries"),where("uid","==",uid),
+      where("roleKey","==",roleKey),where("createdAt",">=",start));
+    const s=await getDocs(q);
+    return !s.empty;
   }
 
-  async function refreshCountsAndEligibility(){
-    countsEl.style.display = "none";
-    tagEl.style.display = "none";
+  async function refreshTable(){
+    const rows = $("salaryRows");
+    rows.innerHTML = "";
+    for(const p of POSITIONS){
+      const row = `<tr><td>${p.label}</td><td>${fmt(p.salaryUGX)}</td></tr>`;
+      rows.insertAdjacentHTML("beforeend", row);
+    }
+  }
+
+  async function refreshEligibility(){
+    const counts=$("youCounts"),tag=$("eligibilityTag");
+    counts.style.display="none"; tag.style.display="none";
     show("Checking eligibility…");
 
-    const vCount = await countDirectVerified(me.uid);
-    const pCount = await countPaidAdvertReferrals(me.uid);
+    const v=await countDirectVerified(me.uid);
+    const p=await countPaidAdvertReferrals(me.uid);
+    counts.innerHTML=`<span>Direct verified: <b>${v}</b></span><span>Referrals who paid: <b>${p}</b></span>`;
+    counts.style.display="flex";
 
-    countsEl.innerHTML = `
-      <span>Direct verified: <b>${vCount}</b></span>
-      <span>Referrals who paid: <b>${pCount}</b></span>
-    `;
-    countsEl.style.display = "flex";
-
-    const role = highestEligibleRole(vCount, pCount);
-    if (role){
-      tagEl.textContent = `Eligible for: ${role.label} • UGX ${role.salary.toLocaleString("en-UG")}`;
-      tagEl.style.display = "inline-block";
-      show("You are eligible. Click REQUEST SALARY to submit for approval.", true);
-      $("requestBtn").disabled = false;
-      $("requestBtn").dataset.roleKey = role.key;
+    const role=highestEligibleRole(v,p);
+    if(role){
+      tag.textContent=`Eligible for: ${role.label} • ${fmt(role.salaryUGX)}`;
+      tag.style.display="inline-block";
+      $("requestBtn").disabled=false;
+      $("requestBtn").dataset.roleKey=role.key;
+      show("Eligible! Click REQUEST SALARY to submit.",true);
     }else{
-      show("Not yet eligible. See requirements above.", false);
-      $("requestBtn").disabled = true;
-      $("requestBtn").dataset.roleKey = "";
+      show("Not yet eligible. See requirements above.");$("requestBtn").disabled=true;
     }
   }
 
   $("requestBtn").addEventListener("click", async ()=>{
-    const roleKey = $("requestBtn").dataset.roleKey;
-    if (!roleKey){ show("You’re not eligible yet."); return; }
+    const roleKey=$("requestBtn").dataset.roleKey;
+    if(!roleKey)return show("You’re not eligible yet.");
+    const role=POSITIONS.find(r=>r.key===roleKey);
+    const salaryLocal=convert(role.salaryUGX);
 
-    const role = POSITIONS.find(r => r.key === roleKey);
-    if (!role){ show("Role not found."); return; }
-
-    const vCount = await countDirectVerified(me.uid);
-    const pCount = await countPaidAdvertReferrals(me.uid);
-    const stillEligible = highestEligibleRole(vCount, pCount)?.key === roleKey;
-
-    if (!stillEligible){ show("Eligibility changed. Please try again.", false); await refreshCountsAndEligibility(); return; }
-
-    // Keep existing pending check (specific: prevents duplicate pending requests)
-    if (await alreadyPending(me.uid, roleKey)){
-      show("You already have a pending request for this role.", false);
-      return;
-    }
-
-    // NEW: enforce one request per role per calendar month
-    if (await hasRequestedThisMonth(me.uid, roleKey)){
-      show("You already requested this role during this month. You may only request a given role once per calendar month.", false);
-      return;
-    }
+    if(await alreadyPending(me.uid,roleKey))
+      return show("You already have a pending request.");
+    if(await hasRequestedThisMonth(me.uid,roleKey))
+      return show("You already requested this role this month.");
 
     try{
-      await addDoc(collection(db,"salaries"), {
-        uid: me.uid,
-        roleKey: role.key,
-        roleLabel: role.label,
-        salaryUGX: role.salary,
-        metrics: { directVerified: vCount, paidAdvertReferrals: pCount },
-        status: "pending",
-        createdAt: serverTimestamp()
+      await addDoc(collection(db,"salaries"),{
+        uid:me.uid,
+        roleKey:role.key,
+        roleLabel:role.label,
+        salaryUGX:role.salaryUGX,
+        salaryLocal:salaryLocal,
+        currency:userCountry,
+        metrics:{directVerified:await countDirectVerified(me.uid),
+                 paidAdvertReferrals:await countPaidAdvertReferrals(me.uid)},
+        status:"pending",
+        createdAt:serverTimestamp()
       });
-      show("Salary request submitted and is pending approval. ✅", true);
-    }catch(err){
-      show(err.message || "Failed to submit request.");
-    }
+      show("Salary request submitted for approval.",true);
+    }catch(e){show(e.message||"Failed to submit request.");}
   });
 
-  onAuthStateChanged(auth, async (user)=>{
-    if (!user){ location.href = "login.html"; return; }
-    const uref = doc(db,"users", user.uid);
-    const usnap = await getDoc(uref);
-    me = usnap.exists() ? { uid:user.uid, ...usnap.data() } : { uid:user.uid };
-    await refreshCountsAndEligibility();
+  let me=null;
+  onAuthStateChanged(auth, async (u)=>{
+    if(!u){location.href="login.html";return;}
+    userCountry=await getUserCountry(u.uid);
+    me={uid:u.uid};
+    await refreshTable();
+    await refreshEligibility();
   });
 </script>
 </body>
