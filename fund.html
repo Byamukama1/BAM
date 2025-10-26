@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -81,12 +81,7 @@
               <th class="c-total">Total harvest</th>
             </tr>
           </thead>
-          <tbody>
-            <tr><td>UGX 229,000</td><td>2%</td><td>10</td><td><strong>UGX 274,800</strong></td></tr>
-            <tr><td>UGX 625,000</td><td>2%</td><td>10</td><td><strong>UGX 750,000</strong></td></tr>
-            <tr><td>UGX 1,940,000</td><td>2%</td><td>10</td><td><strong>UGX 2,328,000</strong></td></tr>
-            <tr><td>UGX 5,210,000</td><td>2%</td><td>10</td><td><strong>UGX 6,252,000</strong></td></tr>
-          </tbody>
+          <tbody id="refTableBody"></tbody>
         </table>
       </div>
       <small class="muted">Totals include principal + profit.</small>
@@ -96,12 +91,8 @@
       <h2 style="margin:0 0 6px;font-size:15px">Fund Types</h2>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr><th>Type</th><th>Rate</th><th>Days</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Paid Funds</td><td>2% / day</td><td>10 days</td></tr>
-          </tbody>
+          <thead><tr><th>Type</th><th>Rate</th><th>Days</th></tr></thead>
+          <tbody><tr><td>Paid Funds</td><td>2% / day</td><td>10 days</td></tr></tbody>
         </table>
       </div>
 
@@ -115,16 +106,15 @@
       <h2 style="margin:0 0 6px;font-size:15px">My Investments</h2>
       <div class="table-wrap">
         <table id="myFunds">
-          <thead>
-            <tr><th>Amount</th><th>Status</th><th>Days left</th><th></th></tr>
-          </thead>
+          <thead><tr><th>Amount</th><th>Status</th><th>Days left</th><th></th></tr></thead>
           <tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <script type="module">
+
+ <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
     import {
@@ -145,9 +135,16 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-
     const $ = id => document.getElementById(id);
-    const UGX = n => "UGX " + Number(n||0).toLocaleString("en-UG");
+
+    // Currency config
+    const currencySymbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+    const currencyRates = { NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005, UGX:1 }; // approximate conversion rate from UGX
+    let userCountry="UGX"; // default
+
+    const fmt = (n) => `${currencySymbols[userCountry]||userCountry} ${Number(convert(n)).toLocaleString()}`;
+    const convert = (amountUGX) => Math.floor(Number(amountUGX||0) * (currencyRates[userCountry]||1));
+
     const show = (html, ok=false) => { $('status').innerHTML = `<div class="banner ${ok?'ok':'warn'}">${html}</div>`; };
 
     const PAID_AMOUNTS = [229000, 625000, 1940000, 5210000];
@@ -156,6 +153,13 @@
     let me=null, userDoc=null, verifiedLevel=null;
     let processingInvest=false;
     const harvesting=new Set();
+
+    async function getUserCountry(uid){
+      const ref=doc(db,"countries",uid);
+      const snap=await getDoc(ref);
+      if(!snap.exists()) return "UGX";
+      return snap.data().country || "UGX";
+    }
 
     function getVerifiedLevel(u){
       const order=["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
@@ -167,7 +171,7 @@
       const g=$('amountGrid');
       const chips=[];
       for(const a of PAID_AMOUNTS){
-        chips.push(`<button class="chip" data-type="PAID" data-amount="${a}">UGX ${a.toLocaleString('en-UG')}</button>`);
+        chips.push(`<button class="chip" data-type="PAID" data-amount="${a}">${fmt(a)}</button>`);
       }
       g.innerHTML=chips.join('');
       g.querySelectorAll('.chip').forEach(btn=>{
@@ -175,14 +179,23 @@
           await startInvest(btn, 'PAID', Number(btn.getAttribute('data-amount')));
         });
       });
+
+      // Reference table
+      const refBody = $("refTableBody");
+      if(refBody){
+        refBody.innerHTML = PAID_AMOUNTS.map(a=>{
+          const total = a*(1+PAID_RATE*PAID_DAYS);
+          return `<tr><td>${fmt(a)}</td><td>2%</td><td>10</td><td><strong>${fmt(total)}</strong></td></tr>`;
+        }).join('');
+      }
     }
 
     async function loadBalances(){
       const ref=doc(db,'users',me.uid);
       const snap=await getDoc(ref);
       userDoc=snap.exists()?snap.data():{};
-      $('mainW').textContent=UGX(userDoc.mainWallet||0);
-      $('comW').textContent=UGX(userDoc.commissionWallet||0);
+      $('mainW').textContent=fmt(userDoc.mainWallet||0);
+      $('comW').textContent=fmt(userDoc.commissionWallet||0);
       verifiedLevel=getVerifiedLevel(userDoc);
       $('levelLbl').textContent=verifiedLevel||'None';
     }
@@ -211,7 +224,7 @@
                                   '<span class="tag req">requesting</span>';
         rows.push(`
           <tr data-id="${d.id}">
-            <td>${UGX(v.amount)}</td>
+            <td>${fmt(v.amount)}</td>
             <td>${tag}</td>
             <td>${v.endsAtMs ? timeLeftString(v.endsAtMs) : '—'}</td>
             <td><button class="btn ${canHarvest?'red':'gray'}" data-act="harvest" ${canHarvest?'':'disabled'}>Harvest</button></td>
@@ -233,27 +246,27 @@
       });
     }
 
-    async function startInvest(buttonEl,type,amount){
+    async function startInvest(buttonEl,type,amountUGX){
       if(processingInvest)return;
       processingInvest=true;
       if(buttonEl){buttonEl.disabled=true;const t=buttonEl.textContent;buttonEl.dataset.prev=t;buttonEl.textContent='Processing…';}
       try{
         await loadBalances();
         const bal=Number(userDoc.mainWallet||0);
-        if(bal<amount){show(`Insufficient balance. Need ${UGX(amount)} in Main Wallet.`);return;}
+        if(bal<amountUGX){show(`Insufficient balance. Need ${fmt(amountUGX)} in Main Wallet.`);return;}
         await runTransaction(db,async(tx)=>{
           const uref=doc(db,'users',me.uid);
           const usnap=await tx.get(uref);
           const u=usnap.exists()?usnap.data():{};
           const b=Number(u.mainWallet||0);
-          if(b<amount)throw new Error('Insufficient balance.');
-          tx.set(uref,{mainWallet:b-amount},{merge:true});
+          if(b<amountUGX)throw new Error('Insufficient balance.');
+          tx.set(uref,{mainWallet:b-amountUGX},{merge:true});
           const now=Date.now();
           const ends=now+(10*24*60*60*1000);
           await addDoc(collection(db,'funds'),{
             uid:me.uid,
             type:'PAID',
-            amount,
+            amount:amountUGX,
             rate:0.02,
             days:10,
             status:'requesting',
@@ -302,10 +315,11 @@
     onAuthStateChanged(auth,async(u)=>{
       if(!u){location.href='login.html';return;}
       me=u;
+      userCountry = await getUserCountry(u.uid);
       renderAmountChips();
       await loadBalances();
       await listMyFunds();
     });
-  </script>
+</script>
 </body>
 </html>
