@@ -36,6 +36,7 @@
     .btn.confirm{background:var(--primary);color:#fff}
     .note{position:fixed;right:16px;bottom:16px;background:var(--success);color:#fff;padding:12px 14px;border-radius:12px;display:none;font-weight:800}
     .note.err{background:var(--error)}
+    .requirement{margin-top:5px;font-size:13px;color:#7c1111;font-weight:600}
     @media (max-width:768px){.levels-grid{grid-template-columns:1fr}}
   </style>
 </head>
@@ -93,18 +94,17 @@
       `<div class="banner ${ok?'ok':''}">${msg}</div>`; };
     const toast = (msg, err=false)=>{ const n=document.getElementById('note'); n.textContent=msg; n.classList.toggle('err',err); n.style.display='block'; setTimeout(()=>n.style.display='none',2800); };
 
-    // ===== Levels (B1 added at 30000, others shifted) =====
     const LEVELS = [
-      { id:'B1', name:'B1', deposit:   30000, each: 250, daily: 4,  grad:['#06b6d4','#0ea5e9'] },
-      { id:'B2', name:'B2', deposit:   80000, each: 330, daily: 7,  grad:['#0ea5e9','#2563eb'] },
-      { id:'B3', name:'B3', deposit:  229000, each: 430, daily:17,  grad:['#7c3aed','#4f46e5'] },
-      { id:'B4', name:'B4', deposit:  625000, each: 735, daily:28,  grad:['#0284c7','#0ea5e9'] },
-      { id:'B5', name:'B5', deposit: 1940000, each:1200, daily:54,  grad:['#8b5cf6','#7c3aed'] },
-      { id:'B6', name:'B6', deposit: 5210000, each:2250, daily:80,  grad:['#16a34a','#22c55e'] },
-      { id:'B7', name:'B7', deposit:13480000, each:3700, daily:130, grad:['#f97316','#fb923c'] },
-      { id:'B8', name:'B8', deposit:30010000, each:6500, daily:175, grad:['#ef4444','#f43f5e'] },
-      { id:'B9', name:'B9', deposit:60010000, each:8750, daily:260, grad:['#0284c7','#2563eb'] },
-      { id:'B10',name:'B10',deposit:99010000, each:15000,daily:300, grad:['#6d28d9','#7c3aed'] },
+      { id:'B1', name:'B1', deposit:30000,   each:250,  daily:4,   grad:['#06b6d4','#0ea5e9'], locked:false },
+      { id:'B2', name:'B2', deposit:80000,   each:330,  daily:7,   grad:['#0ea5e9','#2563eb'], locked:false },
+      { id:'B3', name:'B3', deposit:229000,  each:430,  daily:17,  grad:['#7c3aed','#4f46e5'], locked:false },
+      { id:'B4', name:'B4', deposit:625000,  each:735,  daily:28,  grad:['#0284c7','#0ea5e9'], locked:false },
+      { id:'B5', name:'B5', deposit:1940000, each:1200, daily:54,  grad:['#8b5cf6','#7c3aed'], locked:true, req:"Requires you to be Adverts Collector" },
+      { id:'B6', name:'B6', deposit:5210000, each:2250, daily:80,  grad:['#16a34a','#22c55e'], locked:true, req:"Requires you to be Intern Guider" },
+      { id:'B7', name:'B7', deposit:13480000,each:3700, daily:130, grad:['#f97316','#fb923c'], locked:true, req:"Requires you to be Senior Team Leader" },
+      { id:'B8', name:'B8', deposit:30010000,each:6500, daily:175, grad:['#ef4444','#f43f5e'], locked:true, req:"Requires you to be Regional Supervisor" },
+      { id:'B9', name:'B9', deposit:60010000,each:8750, daily:260, grad:['#0284c7','#2563eb'], locked:true, req:"Requires you to be Regional Supervisor" },
+      { id:'B10',name:'B10',deposit:99010000,each:15000,daily:300, grad:['#6d28d9','#7c3aed'], locked:true, req:"Requires you to be Regional Supervisor" },
     ];
 
     let currentUser=null, userData=null, chosen=null;
@@ -159,13 +159,14 @@
             <div class="bar">
               <span class="chip">Each Task: ${UGX(lv.each)}</span>
               <span class="chip">Daily tasks: ${lv.daily}</span>
-              <button class="join-btn" data-level="${lv.id}" ${under||member?'disabled':''}>
-                ${isCurrent ? 'Current' : under ? 'Under review' : member ? 'Already Joined' : 'Join now'}
+              <button class="join-btn" data-level="${lv.id}" ${lv.locked?'disabled':''}>
+                ${lv.locked ? 'Locked' : (isCurrent ? 'Current' : under ? 'Under review' : member ? 'Already Joined' : 'Join now')}
               </button>
             </div>
             <div style="margin-top:8px;color:${under?'#92400e':'#64748b'};font-size:13px">
               Required to join: <b>${UGX(lv.deposit)}</b>
             </div>
+            ${lv.locked && lv.req ? `<div class="requirement">${lv.req}</div>` : ''}
             ${under?'<div class="status under">Status: under review</div>':''}
             ${isCurrent?'<div class="status member">Status: current</div>': member?'<div class="status member">Status: member</div>':''}
           </div>`;
@@ -173,7 +174,7 @@
       });
 
       document.querySelectorAll('.join-btn[data-level]').forEach(btn=>{
-        btn.addEventListener('click', onJoinClick);
+        if(!btn.hasAttribute('disabled')) btn.addEventListener('click', onJoinClick);
       });
     }
 
