@@ -118,13 +118,12 @@
       </div>
     </section>
 
-    <section class="grid-small" aria-label="Account actions">
+    <section class="grid-small">
       <a class="btn-mini" href="task-record.html"><div class="ico">📝</div><span>task record</span></a>
       <a class="btn-mini" href="addAdvert.html"><div class="ico">➕</div><span>Add Advert</span></a>
       <a class="btn-mini" href="position-salary.html"><div class="ico">🎖️</div><span>position salary</span></a>
       <a id="apkDownloadBtn" class="btn-mini" href="#" download>
-        <div class="ico">⬇️</div>
-        <span>APP Download</span>
+        <div class="ico">⬇️</div><span>APP Download</span>
       </a>
       <a class="btn-mini" href="team-report.html"><div class="ico">📋</div><span>team report</span></a>
       <a class="btn-mini" href="handbook.html"><div class="ico">📘</div><span>Hand book</span></a>
@@ -139,234 +138,80 @@
     <a class="active" href="account.html" aria-current="page"><span class="n-ico">👤</span>Account</a>
   </nav>
 
- <script type="module">
-  import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-  import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
+  <script type="module">
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getStorage, ref as storageRef, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
-    authDomain: "bam1-3d3e5.firebaseapp.com",
-    projectId: "bam1-3d3e5",
-    storageBucket: "bam1-3d3e5.appspot.com",
-    messagingSenderId: "649603741902",
-    appId: "1:649603741902:web:e67f20363f485c0948789f",
-    measurementId: "G-W2DY026FXB"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+      authDomain: "bam1-3d3e5.firebaseapp.com",
+      projectId: "bam1-3d3e5",
+      storageBucket: "bam1-3d3e5.appspot.com",
+      messagingSenderId: "649603741902",
+      appId: "1:649603741902:web:e67f20363f485c0948789f"
+    };
 
-  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  try { getAnalytics(app); } catch (e) {}
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
 
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const storage = getStorage(app);
+    const $ = id => document.getElementById(id);
+    const currencySymbols = { UGX: "UGX", NGN: "₦", TZS: "TSh", KES: "KSh", GHS: "₵", ZMW: "ZK" };
+    const defaultCurrency = "UGX";
 
-  const $ = id => document.getElementById(id);
-  const fmt = n => "UGX " + Number(n||0).toLocaleString("en-UG");
-
-  /* ---------------- Dates/helpers ---------------- */
-  const pad = n => (n < 10 ? "0"+n : ""+n);
-  const toKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  const today = new Date();
-  const todayKey = toKey(today);
-  const yest = new Date(today.getFullYear(), today.getMonth(), today.getDate()-1);
-  const yestKey = toKey(yest);
-  const weekStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()-6);
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  function startOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0,0,0,0); }
-  function endOfDay(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999); }
-
-  /* ---------------- Wallet init ---------------- */
-  async function ensureWalletFields(uid){
-    const ref = doc(db,"users",uid);
-    const snap = await getDoc(ref);
-    const data = snap.exists() ? snap.data() : {};
-    const patch = {};
-    if (typeof data.mainWallet !== "number") patch.mainWallet = 0;
-    if (typeof data.commissionWallet !== "number") patch.commissionWallet = 0;
-    if (Object.keys(patch).length){ await setDoc(ref, patch, { merge:true }); }
-  }
-
-  /* ---------------- Level helpers ---------------- */
-  function computeLevelAndStatus(data = {}) {
-    const order = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
-    let level = "Intern"; let levelStatus = null;
-    for (const code of order) {
-      if (data[code]) { level = code; levelStatus = data[code]?.status || null; break; }
+    async function getUserCurrency(uid){
+      const ref = doc(db, "countries", uid);
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return defaultCurrency;
+      const data = snap.data();
+      return data.country || defaultCurrency;
     }
-    const rootStatus = data.status ? String(data.status).replace("_"," ") : null;
-    const status = rootStatus || (levelStatus ? String(levelStatus).replace("_"," ") : "—");
-    return { level, status };
-  }
 
-  /* ✅ AUTO-UPDATE VERIFIED LEVEL DAYS LEFT */
-  async function updateDaysLeft(uid, data){
-    const ref = doc(db, "users", uid);
-    const levels = ["B1","B2","B3","B4","B5","B6","B7","B8","B9"];
-    let verified = null, daysLeft = null;
+    function format(n, symbol){
+      return `${symbol} ${Number(n || 0).toLocaleString()}`;
+    }
 
-    for (const code of levels){
-      const lvl = data[code];
-      if (lvl && lvl.status === "verified" && lvl.joinedAt){
-        const joinedAt = lvl.joinedAt.toDate ? lvl.joinedAt.toDate() : new Date(lvl.joinedAt);
-        const diffDays = Math.floor((Date.now() - joinedAt.getTime()) / (1000 * 60 * 60 * 24));
-        const remaining = Math.max(100 - diffDays, 0);
+    async function loadUser(uid){
+      const ref = doc(db, "users", uid);
+      const snap = await getDoc(ref);
+      const data = snap.exists() ? snap.data() : {};
+      const currency = await getUserCurrency(uid);
+      const symbol = currencySymbols[currency] || currency;
 
-        // Update Firestore if changed
-        if (lvl.daysLeft !== remaining || (remaining <= 0 && lvl.status !== "Completed-100-days-Recharge")){
-          const update = {};
-          update[code] = { ...lvl, daysLeft: remaining };
-          if (remaining <= 0) update[code].status = "Completed-100-days-Recharge";
-          await setDoc(ref, update, { merge:true });
-        }
+      $("displayName").textContent = data.name || "Member";
+      $("avatar").textContent = (data.name || "BM").split(" ").map(s=>s[0]||"").slice(0,2).join("").toUpperCase();
+      $("levelBadge").textContent = "Level: " + (data.level || "Intern");
+      $("statusBadge").textContent = "Status: " + (data.status || "—");
 
-        verified = code;
-        daysLeft = remaining;
-        break;
+      $("mainWallet").textContent = format(data.mainWallet, symbol);
+      $("commWallet").textContent = format(data.commissionWallet, symbol);
+      $("todayIncome").textContent = format(data.todayIncome, symbol);
+      $("yesterdayIncome").textContent = format(data.yesterdayIncome, symbol);
+      $("totalIncome").textContent = format(data.totalIncome, symbol);
+      $("weekIncome").textContent = format(data.weekIncome, symbol);
+      $("monthIncome").textContent = format(data.monthIncome, symbol);
+      $("inviteCommission").textContent = format(data.inviteCommission, symbol);
+      $("totalWithdrawn").textContent = format(data.totalWithdrawn, symbol);
+      $("daysLeft").textContent = data.daysLeft || "—";
+    }
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) return location.href = "login.html";
+      await loadUser(user.uid);
+
+      $("rechargeBtn").onclick = () => location.href = "recharge.html";
+      $("withdrawBtn").onclick = () => location.href = "withdraw.html";
+
+      try {
+        const url = await getDownloadURL(storageRef(storage, "BAM.apk"));
+        $("apkDownloadBtn").href = url;
+      } catch {
+        $("apkDownloadBtn").href = "https://firebasestorage.googleapis.com/v0/b/bam1-3d3e5.appspot.com/o/BAM.apk?alt=media";
       }
-    }
-    $("daysLeft").textContent = daysLeft !== null ? daysLeft : "—";
-    return { verified, daysLeft };
-  }
-
-  /* ---------------- Summaries ---------------- */
-  async function sumTaskAmountBetween(uid, startKey, endKey){
-    const evCol = collection(db,"tasks",uid,"events");
-    const qy = query(evCol, where("dateKey", ">=", startKey), where("dateKey", "<=", endKey));
-    const snap = await getDocs(qy);
-    let total = 0; snap.forEach(d=> total += Number(d.data().amount || 0));
-    return total;
-  }
-  async function sumTaskAmountAll(uid){
-    const evCol = collection(db,"tasks",uid,"events");
-    const snap = await getDocs(evCol);
-    let total = 0; snap.forEach(d=> total += Number(d.data().amount || 0));
-    return total;
-  }
-
-  async function sumReferralBonusBetween(uid, startDate, endDate){
-    const refCol = collection(db,"referrals");
-    const qy = query(refCol, where("toUid","==", uid), where("createdAt",">=", startDate), where("createdAt","<=", endDate));
-    const snap = await getDocs(qy);
-    let total = 0; snap.forEach(d=> total += Number(d.data().bonus || 0));
-    return total;
-  }
-  async function sumReferralBonusAll(uid){
-    const refCol = collection(db,"referrals");
-    const qy = query(refCol, where("toUid","==", uid));
-    const snap = await getDocs(qy);
-    let total = 0; snap.forEach(d=> total += Number(d.data().bonus || 0));
-    return total;
-  }
-
-  async function sumSpinAmountBetween(uid, startDate, endDate){
-    const col = collection(db,"spins");
-    const qy = query(col, where("uid","==", uid), where("createdAt",">=", startDate), where("createdAt","<=", endDate));
-    const snap = await getDocs(qy);
-    let total = 0; snap.forEach(d=> total += Number(d.data().amount || 0));
-    return total;
-  }
-  async function sumSpinAmountAll(uid){
-    const col = collection(db,"spins");
-    const qy = query(col, where("uid","==", uid));
-    const snap = await getDocs(qy);
-    let total = 0; snap.forEach(d=> total += Number(d.data().amount || 0));
-    return total;
-  }
-
-  async function sumWithdrawNetPaidAll(uid){
-    const col = collection(db,"withdraws");
-    const qy = query(col, where("uid","==", uid), where("status","==","paid"));
-    const snap = await getDocs(qy);
-    let total = 0;
-    snap.forEach(d=>{
-      const v = d.data();
-      const amt = (typeof v.amount === "number") ? v.amount : (v.netAmount || 0);
-      total += Number(amt || 0);
     });
-    return total;
-  }
-
-  /* ---------------- Load & Render ---------------- */
-  async function loadUser(uid){
-    const ref = doc(db,"users",uid);
-    const snap = await getDoc(ref);
-    const d = snap.exists() ? snap.data() : {};
-
-    $("displayName").textContent = d.name || (auth.currentUser?.displayName || "BAM Member");
-    $("avatar").textContent = (d.name || "B M").split(" ").map(s=>s[0]||"").slice(0,2).join("").toUpperCase() || "B";
-
-    const { level, status } = computeLevelAndStatus(d);
-    $("levelBadge").textContent  = `Level: ${level}`;
-    $("statusBadge").textContent = `Status: ${status}`;
-
-    // ✅ update verified level days left
-    await updateDaysLeft(uid, d);
-
-    $("mainWallet").textContent = fmt(d.mainWallet || 0);
-    $("commWallet").textContent = fmt(d.commissionWallet || 0);
-
-    const todayTasks = await sumTaskAmountBetween(uid, todayKey, todayKey);
-    const todayRefs  = await sumReferralBonusBetween(uid, startOfDay(today), endOfDay(today));
-    const todaySpins = await sumSpinAmountBetween(uid, startOfDay(today), endOfDay(today));
-    $("todayIncome").textContent = fmt(todayTasks + todayRefs + todaySpins);
-
-    const yestTasks = await sumTaskAmountBetween(uid, yestKey, yestKey);
-    const yestRefs  = await sumReferralBonusBetween(uid, startOfDay(yest), endOfDay(yest));
-    const yestSpins = await sumSpinAmountBetween(uid, startOfDay(yest), endOfDay(yest));
-    $("yesterdayIncome").textContent = fmt(yestTasks + yestRefs + yestSpins);
-
-    const weekTasks = await sumTaskAmountBetween(uid, toKey(weekStart), todayKey);
-    const weekRefs  = await sumReferralBonusBetween(uid, startOfDay(weekStart), endOfDay(today));
-    const weekSpins = await sumSpinAmountBetween(uid, startOfDay(weekStart), endOfDay(today));
-    $("weekIncome").textContent = fmt(weekTasks + weekRefs + weekSpins);
-
-    const monthTasks = await sumTaskAmountBetween(uid, toKey(monthStart), todayKey);
-    const monthRefs  = await sumReferralBonusBetween(uid, startOfDay(monthStart), endOfDay(today));
-    const monthSpins = await sumSpinAmountBetween(uid, startOfDay(monthStart), endOfDay(today));
-    $("monthIncome").textContent = fmt(monthTasks + monthRefs + monthSpins);
-
-    const totalTasks = await sumTaskAmountAll(uid);
-    const totalRefs  = await sumReferralBonusAll(uid);
-    const totalSpins = await sumSpinAmountAll(uid);
-    $("totalIncome").textContent = fmt(totalTasks + totalRefs + totalSpins);
-    $("inviteCommission").textContent = fmt(totalRefs);
-
-    const withdrawn = await sumWithdrawNetPaidAll(uid);
-    $("totalWithdrawn").textContent = fmt(withdrawn);
-  }
-
-  async function handleRecharge(uid){ await ensureWalletFields(uid); location.href = "recharge.html"; }
-  async function handleWithdraw(uid){ await ensureWalletFields(uid); location.href = "withdraw.html"; }
-
-  onAuthStateChanged(auth, async (user)=>{
-    if (!user){ location.href="login.html"; return; }
-    await ensureWalletFields(user.uid);
-    await loadUser(user.uid);
-    $("rechargeBtn").onclick = ()=>handleRecharge(user.uid);
-    $("withdrawBtn").onclick = ()=>handleWithdraw(user.uid);
-
-    try {
-      const apkRef = storageRef(storage, "BAM.apk");
-      const url = await getDownloadURL(apkRef);
-      const btn = $("apkDownloadBtn");
-      if (btn){
-        btn.href = url;
-        btn.setAttribute("download","BAM.apk");
-        btn.setAttribute("target","_blank");
-        btn.title = "Download BAM APK";
-      }
-    } catch (err){
-      console.warn("Could not get APK URL:", err);
-      const btn = $("apkDownloadBtn");
-      if (btn){
-        btn.href = "https://firebasestorage.googleapis.com/v0/b/bam1-3d3e5.appspot.com/o/BAM.apk?alt=media";
-        btn.setAttribute("target","_blank");
-      }
-    }
-  });
-</script>
+  </script>
 </body>
 </html>
