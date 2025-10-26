@@ -14,8 +14,8 @@
     .subtitle{ opacity:.9; margin-top:6px; font-size:13px }
     form{ padding:20px }
     label{ display:block; font-size:13px; margin:14px 0 6px }
-    input{ width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:10px; font-size:15px; outline:none; transition:.2s }
-    input:focus{ border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(155,28,28,.12) }
+    input, select{ width:100%; padding:12px 14px; border:1px solid #ddd; border-radius:10px; font-size:15px; outline:none; transition:.2s }
+    input:focus, select:focus{ border-color:var(--brand-red); box-shadow:0 0 0 3px rgba(155,28,28,.12) }
     .row{ display:flex; gap:10px }
     .row>div{ flex:1 }
     .muted{ font-size:12px; color:#6b7280; line-height:1.4 }
@@ -43,7 +43,17 @@
       <input id="email" type="email" required placeholder="you@gmail.com" />
 
       <label for="phone">Phone</label>
-      <input id="phone" type="tel" required placeholder="2567xxxxxxxx" />
+      <input id="phone" type="tel" required placeholder="e.g. +234 8012345678 or 2567xxxxxxx" />
+
+      <label for="country">Select Country</label>
+      <select id="country" required>
+        <option value="UGX">🇺🇬 Uganda (UGX)</option>
+        <option value="NGN">🇳🇬 Nigeria (NGN)</option>
+        <option value="TZS">🇹🇿 Tanzania (TZS)</option>
+        <option value="KES">🇰🇪 Kenya (KES)</option>
+        <option value="GHS">🇬🇭 Ghana (GHS)</option>
+        <option value="ZMW">🇿🇲 Zambia (ZMW)</option>
+      </select>
 
       <div class="row">
         <div>
@@ -76,9 +86,8 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import { getFirestore, collection, doc, setDoc, query, where, getDocs, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, query, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    /* Firebase config */
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
       authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -91,21 +100,14 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const usersCol = collection(db,"users");
-    const $ = id=>document.getElementById(id);
-    const errBox=$("err"), okBox=$("ok"), refChip=$("refChip");
+    const usersCol = collection(db, "users");
+    const countriesCol = collection(db, "countries");
 
-    function showError(m){errBox.style.display="block";errBox.textContent=m;okBox.style.display="none";}
-    function showOk(m){okBox.style.display="block";okBox.textContent=m;errBox.style.display="none";}
+    const $ = id => document.getElementById(id);
+    const errBox = $("err"), okBox = $("ok"), refChip = $("refChip");
 
-    function normalizeUGPhone(raw){
-      if(!raw)return null;
-      let s=(""+raw).trim().replace(/\D/g,"");
-      if(s.startsWith("0")&&s.length===10)return"256"+s.slice(1);
-      if(s.startsWith("256")&&s.length===12)return s;
-      if(s.length===9&&s.startsWith("7"))return"256"+s;
-      return null;
-    }
+    function showError(m){ errBox.style.display="block"; errBox.textContent=m; okBox.style.display="none"; }
+    function showOk(m){ okBox.style.display="block"; okBox.textContent=m; errBox.style.display="none"; }
 
     async function findUserByInvite(code){
       if(!code)return null;
@@ -124,7 +126,6 @@
       }
     }
 
-    /* 🔗 Smart chain resolver */
     async function resolveReferrers(){
       const p=new URLSearchParams(location.search);
       const codeA=(p.get("inviteCode")||p.get("ref")||p.get("a")||"").toUpperCase();
@@ -137,7 +138,6 @@
       let refB=aUser.refA||null, refB_uid=aUser.refA_uid||null;
       let refC=null, refC_uid=null;
 
-      // if refB exists, find its parent to form third tier
       if(refB){
         const bUser=await findUserByInvite(refB);
         if(bUser){ refC=bUser.refA||null; refC_uid=bUser.refA_uid||null; }
@@ -149,19 +149,20 @@
       return {refA,refB,refC,refA_uid,refB_uid,refC_uid};
     }
 
-    $("regForm").addEventListener("submit",async e=>{
+    $("regForm").addEventListener("submit", async e=>{
       e.preventDefault();
-      errBox.style.display="none";okBox.style.display="none";
+      errBox.style.display="none"; okBox.style.display="none";
 
       const name=$("name").value.trim();
       const email=$("email").value.trim().toLowerCase();
-      const phone=normalizeUGPhone($("phone").value.trim());
+      const phone=$("phone").value.trim();
+      const country=$("country").value;
       const pass=$("password").value;
       const confirm=$("confirm").value;
 
       if(!name)return showError("Please enter your full name.");
-      if(!email)return showError("Please enter a valid email.");
-      if(!phone)return showError("Please enter a valid Ugandan phone number.");
+      if(!email)return showError("Please enter a valid email address.");
+      if(!phone)return showError("Please enter your phone number.");
       if(pass.length<6)return showError("Password must be at least 6 characters.");
       if(pass!==confirm)return showError("Passwords do not match.");
 
@@ -173,8 +174,18 @@
         await updateProfile(cred.user,{displayName:name});
         const uid=cred.user.uid;
 
+        const exchangeRatios = {
+          "UGX": 1,
+          "NGN": 0.025,
+          "TZS": 0.61,
+          "KES": 0.037,
+          "GHS": 0.0016,
+          "ZMW": 0.005
+        };
+        const ratio = exchangeRatios[country] || 1;
+
         await setDoc(doc(db,"users",uid),{
-          uid,name,email,phone,
+          uid,name,email,phone,country,
           role:"member",
           inviteCode:myInvite,
           refA:refs.refA||null,
@@ -189,8 +200,15 @@
           totalEarnings:0,mainWallet:0,commissionWallet:0
         });
 
+        await setDoc(doc(countriesCol, uid), {
+          userId: uid,
+          country: country,
+          exchangeRatio: ratio,
+          createdAt: serverTimestamp()
+        });
+
         showOk("Account created successfully! Redirecting…");
-        setTimeout(()=>location.href="index.html",700);
+        setTimeout(()=>location.href="index.html",1000);
       }catch(err){
         console.error(err);
         let msg="Sign up failed. ";
@@ -202,7 +220,6 @@
       }
     });
 
-    // visual hint if link has ?inviteCode=
     (()=>{const p=new URLSearchParams(location.search);const c=(p.get("inviteCode")||p.get("ref")||"").toUpperCase();if(c){refChip.style.display="inline-block";refChip.textContent=`Using referral code: ${c}`;}})();
   </script>
 </body>
