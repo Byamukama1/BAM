@@ -12,23 +12,11 @@
     .wrap{max-width:720px;margin:0 auto;padding:16px 12px}
     .card{background:#fff;border-radius:12px;box-shadow:0 6px 16px rgba(0,0,0,.08);padding:16px;margin-bottom:14px}
 
-    /* Compact, responsive table */
     .tbl{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:14px;table-layout:auto}
     .tbl th,.tbl td{padding:10px 12px;vertical-align:top}
     .tbl th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#5b5b5b}
     .roww{background:#fff;border:1px solid #f0d4d4;border-radius:10px}
-    .tbl td{word-break:break-word}
     .tbl td:first-child{font-weight:800;color:#7a2e2e;white-space:nowrap}
-    .tbl td:nth-child(2), .tbl td:nth-child(3), .tbl td:nth-child(4){white-space:nowrap}
-
-    /* Small screens: tighter spacing + font sizes */
-    @media (max-width:480px){
-      .wrap{padding:14px 10px}
-      .tbl{font-size:13px}
-      .tbl th,.tbl td{padding:8px 10px}
-      .tbl td:nth-child(2), .tbl td:nth-child(3), .tbl td:nth-child(4){white-space:normal}
-    }
-
     .note{font-size:12px;color:#6b7280;margin-top:8px}
     label{display:block;font-weight:700;font-size:13px;margin:10px 0 6px;color:#502a2a}
     input,textarea{width:100%;padding:10px;border:1px solid #e3c4c4;border-radius:10px;font-size:14px;outline:none;background:#fff}
@@ -63,21 +51,20 @@
         <tbody>
           <tr class="roww">
             <td>Verified</td>
-            <td>UGX 0</td>
+            <td id="verifiedAmount">UGX 0</td>
             <td>5 videos</td>
             <td>5 years</td>
           </tr>
           <tr class="roww">
             <td>Not verified</td>
-            <td>UGX 10,000</td>
+            <td id="notVerifiedAmount">UGX 10,000</td>
             <td>2 videos</td>
             <td>5 years</td>
           </tr>
         </tbody>
       </table>
       <div class="note">
-        Tip: Please upload videos in <b>landscape (16:9)</b> for the best visibility on the Tasks page.
-        If recording on your phone, hold it in landscape.
+        Tip: Please upload videos in <b>landscape (16:9)</b> for best visibility on the Tasks page.
       </div>
       <div id="whoAmI" class="note"></div>
     </section>
@@ -121,18 +108,18 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    /* ---------------- Cloudinary (unsigned) ---------------- */
-    const cloudinaryConfig = { cloudName: "dp81zzxlh", uploadPreset: "Unsigned upload" };
+    const $ = id => document.getElementById(id);
+    const currencySymbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+    const defaultCurrency = "UGX";
+    const baseFeeUGX = 10000; // base reference fee
+
+    /* ---------------- Cloudinary ---------------- */
+    const cloudinaryConfig = { cloudName: "dp81zzxlh", uploadPreset: "unsignedpreset" };
     const CLOUD_URL = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/video/upload`;
 
-    /* ---------------- Helpers ---------------- */
-    const $ = id => document.getElementById(id);
-    const fileInput = $("file"), preview = $("preview"), bar = $("bar"),
-          progress = $("progress"), statusEl = $("status"), whoEl = $("whoAmI");
-
-    function setProgress(p){ progress.style.display="block"; bar.style.width=Math.max(0,Math.min(100,p))+"%"; }
-    function resetProgress(){ progress.style.display="none"; bar.style.width="0%"; }
-    function say(msg, ok=false){ statusEl.textContent = msg; statusEl.className = "status " + (ok ? "ok" : "err"); }
+    function setProgress(p){ $("progress").style.display="block"; $("bar").style.width=Math.max(0,Math.min(100,p))+"%"; }
+    function resetProgress(){ $("progress").style.display="none"; $("bar").style.width="0%"; }
+    function say(msg, ok=false){ $("status").textContent = msg; $("status").className = "status " + (ok?"ok":"err"); }
     function words(s){ return String(s||"").trim().split(/\s+/).filter(Boolean).length; }
 
     function uploadToCloudinary(file){
@@ -141,16 +128,16 @@
         fd.append("file",file);
         fd.append("upload_preset",cloudinaryConfig.uploadPreset);
         const xhr=new XMLHttpRequest();
-        xhr.open("POST", CLOUD_URL);
-        xhr.upload.addEventListener("progress", e=>{
-          if(e.lengthComputable) setProgress((e.loaded/e.total)*100);
+        xhr.open("POST",CLOUD_URL);
+        xhr.upload.addEventListener("progress",e=>{
+          if(e.lengthComputable)setProgress((e.loaded/e.total)*100);
         });
         xhr.onreadystatechange=()=>{
           if(xhr.readyState===4){
             resetProgress();
-            if(xhr.status>=200 && xhr.status<300){
-              try{ resolve(JSON.parse(xhr.responseText)); }
-              catch(err){ reject(err); }
+            if(xhr.status>=200&&xhr.status<300){
+              try{resolve(JSON.parse(xhr.responseText));}
+              catch(err){reject(err);}
             }else reject(new Error("Upload failed"));
           }
         };
@@ -159,112 +146,114 @@
     }
 
     function userVerified(u){
-      // Any B1..B9 map with status "verified" counts as verified
-      const levels = ["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
-      return levels.some(k => u?.[k]?.status === "verified");
+      const levels=["B9","B8","B7","B6","B5","B4","B3","B2","B1"];
+      return levels.some(k=>u?.[k]?.status==="verified");
     }
 
-    let me = null, isVerified = false, uid = null;
+    async function getUserCountryInfo(uid){
+      const ref = doc(db,"countries",uid);
+      const snap = await getDoc(ref);
+      if(!snap.exists()) return { country: defaultCurrency, exchangeRatio: 1 };
+      const data = snap.data();
+      return { country: data.country || defaultCurrency, exchangeRatio: data.exchangeRatio || 1 };
+    }
 
-    // show selected video
-    let pickedFile = null;
-    fileInput.addEventListener("change", e=>{
-      preview.innerHTML="";
-      const f = e.target.files?.[0];
-      if(!f){ preview.innerHTML = '<span class="note">No file selected</span>'; return; }
-      pickedFile = f;
-      const url = URL.createObjectURL(f);
-      const v = document.createElement("video");
-      v.src = url; v.controls = true; v.muted = true; v.playsInline = true;
-      preview.appendChild(v);
+    let uid=null, me=null, isVerified=false, pickedFile=null, currency=defaultCurrency, exchangeRatio=1, convertedFee=baseFeeUGX;
+
+    $("file").addEventListener("change",e=>{
+      const f=e.target.files?.[0];
+      const p=$("preview"); p.innerHTML="";
+      if(!f){p.innerHTML='<span class="note">No file selected</span>';return;}
+      pickedFile=f;
+      const v=document.createElement("video");
+      v.src=URL.createObjectURL(f);
+      v.controls=true;v.muted=true;v.playsInline=true;
+      p.appendChild(v);
     });
 
     onAuthStateChanged(auth, async (user)=>{
-      if(!user){ location.href = "login.html"; return; }
-      uid = user.uid;
+      if(!user){ location.href="login.html"; return; }
+      uid=user.uid;
+      const uref=doc(db,"users",uid);
+      const usnap=await getDoc(uref);
+      me=usnap.exists()?usnap.data():{};
+      isVerified=userVerified(me);
 
-      // Load user profile
-      const uref = doc(db,"users",uid);
-      const usnap = await getDoc(uref);
-      me = usnap.exists() ? usnap.data() : {};
-      isVerified = userVerified(me);
+      // country & exchange info
+      const info = await getUserCountryInfo(uid);
+      currency = info.country;
+      exchangeRatio = info.exchangeRatio || 1;
+      const symbol = currencySymbols[currency] || currency;
+      convertedFee = Math.round(baseFeeUGX * exchangeRatio);
 
-      whoEl.innerHTML = `Status: <b>${isVerified ? "Verified" : "Not verified"}</b>` +
-        (isVerified ? `<span class="pill">Free (up to 5 videos)</span>` : `<span class="pill">UGX 10,000 (up to 2 videos)</span>`);
+      $("verifiedAmount").textContent = `${symbol} 0`;
+      $("notVerifiedAmount").textContent = `${symbol} ${convertedFee.toLocaleString()}`;
+      $("whoAmI").innerHTML = `Status: <b>${isVerified ? "Verified" : "Not verified"}</b>` +
+        (isVerified ? `<span class="pill">Free (up to 5 videos)</span>` :
+          `<span class="pill">${symbol} ${convertedFee.toLocaleString()} (up to 2 videos)</span>`);
     });
 
     async function countMyPending(){
-      const qy = query(collection(db,"pendingAdverts"), where("uid","==", uid));
-      const snap = await getDocs(qy);
-      return snap.size || 0;
+      const qy=query(collection(db,"pendingAdverts"),where("uid","==",uid));
+      const snap=await getDocs(qy);
+      return snap.size||0;
     }
 
-    $("uploadBtn").addEventListener("click", async ()=>{
-      if(!uid){ say("Please sign in again."); return; }
+    $("uploadBtn").addEventListener("click",async()=>{
+      if(!uid){say("Please sign in again.");return;}
+      const title=$("title").value.trim();
+      const desc=$("desc").value.trim();
+      if(!title||words(title)>5){say("Title must be ≤ 5 words.");return;}
+      if(!desc||words(desc)>50){say("Description must be ≤ 50 words.");return;}
+      if(!pickedFile){say("Pick a video file first.");return;}
 
-      const title = $("title").value.trim();
-      const desc  = $("desc").value.trim();
-
-      if(!title || words(title) > 5){ say("Title must be present and ≤ 5 words."); return; }
-      if(!desc  || words(desc)  > 50){ say("Description must be present and ≤ 50 words."); return; }
-      if(!pickedFile){ say("Pick a video file first."); return; }
-
-      // Limits & fee
-      const maxVideos = isVerified ? 5 : 2;
-      const fee = isVerified ? 0 : 10000;
+      const maxVideos=isVerified?5:2;
+      const fee=isVerified?0:convertedFee;
 
       try{
-        // Enforce count
-        const current = await countMyPending();
-        if(current >= maxVideos){
-          say(`Limit reached: you can have up to ${maxVideos} video${maxVideos>1?"s":""}.`); return;
-        }
-
+        const current=await countMyPending();
+        if(current>=maxVideos){say(`Limit reached: ${maxVideos} videos.`);return;}
         say("Uploading video…");
-        const up = await uploadToCloudinary(pickedFile);
-        const url = up.secure_url || up.url;
-        if(!url) throw new Error("No URL returned by Cloudinary.");
+        const up=await uploadToCloudinary(pickedFile);
+        const url=up.secure_url||up.url;
+        if(!url)throw new Error("No URL returned.");
 
-        // Save to pendingAdverts + (if needed) deduct from mainWallet in a single transaction
-        const expiresAt = new Date(Date.now() + 5*365*24*3600*1000); // ~5 years
+        const expiresAt=new Date(Date.now()+5*365*24*3600*1000);
 
-        await runTransaction(db, async (tx)=>{
-          const uref = doc(db,"users",uid);
-          const usnap = await tx.get(uref);
-          const udata = usnap.exists() ? usnap.data() : {};
-
-          if(fee > 0){
-            const bal = Number(udata.mainWallet || 0);
-            if(bal < fee) throw new Error("Insufficient balance in main wallet for this upload.");
-            tx.set(uref, { mainWallet: bal - fee }, { merge:true });
+        await runTransaction(db,async(tx)=>{
+          const uref=doc(db,"users",uid);
+          const usnap=await tx.get(uref);
+          const udata=usnap.exists()?usnap.data():{};
+          if(fee>0){
+            const bal=Number(udata.mainWallet||0);
+            if(bal<fee)throw new Error("Insufficient balance.");
+            tx.set(uref,{mainWallet:bal-fee},{merge:true});
           }
-
-          // write pending
-          const pRef = collection(db,"pendingAdverts");
-          tx.set(doc(pRef), {
+          const pRef=collection(db,"pendingAdverts");
+          tx.set(doc(pRef),{
             uid,
             title,
-            description: desc,
-            sourceType: "direct",
+            description:desc,
+            sourceType:"direct",
             url,
-            publicId: up.public_id || null,
-            bytes: up.bytes || null,
-            duration: up.duration || null,
-            createdAt: serverTimestamp(),
+            publicId:up.public_id||null,
+            bytes:up.bytes||null,
+            duration:up.duration||null,
+            createdAt:serverTimestamp(),
             expiresAt,
-            status: "pending",
-            amountCharged: fee
+            status:"pending",
+            amountCharged:fee,
+            currency
           });
         });
 
-        say("Advert submitted for review ✅ It will appear after approval.", true);
-        // reset
-        $("title").value=""; $("desc").value=""; fileInput.value="";
-        preview.innerHTML = '<span class="note">No file selected</span>';
-        pickedFile = null;
+        say("Advert submitted for review ✅",true);
+        $("title").value="";$("desc").value="";$("file").value="";
+        $("preview").innerHTML='<span class="note">No file selected</span>';
+        pickedFile=null;
       }catch(err){
         console.error(err);
-        say(err.message || "Upload failed.");
+        say(err.message||"Upload failed.");
       }
     });
   </script>
