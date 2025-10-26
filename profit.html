@@ -11,18 +11,9 @@
     }
     *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
     body{margin:0;background:#fff7f7;color:var(--ink)}
-    header{
-      background:linear-gradient(135deg,var(--brand),var(--brand-d));
-      color:#fff;text-align:center;padding:10px 12px;
-      font-weight:900;letter-spacing:.3px
-    }
+    header{background:linear-gradient(135deg,var(--brand),var(--brand-d));color:#fff;text-align:center;padding:10px 12px;font-weight:900;letter-spacing:.3px}
     .wrap{max-width:1100px;margin:0 auto;padding:10px}
-    .title-strip{
-      background:linear-gradient(180deg,var(--brand),var(--brand-d));
-      color:#fff;text-align:center;border-radius:10px;
-      margin:6px 0 10px;padding:10px 8px;
-      font-weight:900;text-transform:uppercase;letter-spacing:1px
-    }
+    .title-strip{background:linear-gradient(180deg,var(--brand),var(--brand-d));color:#fff;text-align:center;border-radius:10px;margin:6px 0 10px;padding:10px 8px;font-weight:900;text-transform:uppercase;letter-spacing:1px}
     .table-wrap{border:2px solid var(--brand);border-radius:10px;overflow-x:auto}
     table{width:100%;border-collapse:collapse}
     colgroup col:nth-child(1){width:14%}
@@ -38,42 +29,19 @@
     tbody tr:nth-child(even){background:var(--rowB)}
     .lvl{font-weight:900;color:var(--brand-d)}
     .understanding{margin-top:24px}
-    .understanding h2{
-      margin:0 0 14px;text-align:center;font-size:22px;font-weight:900;color:var(--brand-d);
-      letter-spacing:.6px;text-transform:uppercase
-    }
-    .understanding h2::after{
-      content:"";display:block;width:120px;height:4px;margin:10px auto 0;border-radius:999px;
-      background:linear-gradient(90deg,transparent,var(--brand),var(--brand-d),transparent)
-    }
-    .step{
-      position:relative;background:var(--paper);border:1px solid #efd0d0;border-radius:16px;
-      padding:16px 16px 16px 64px;margin:14px 0;box-shadow:0 8px 22px rgba(155,28,28,.08);
-    }
+    .understanding h2{margin:0 0 14px;text-align:center;font-size:22px;font-weight:900;color:var(--brand-d);letter-spacing:.6px;text-transform:uppercase}
+    .understanding h2::after{content:"";display:block;width:120px;height:4px;margin:10px auto 0;border-radius:999px;background:linear-gradient(90deg,transparent,var(--brand),var(--brand-d),transparent)}
+    .step{position:relative;background:var(--paper);border:1px solid #efd0d0;border-radius:16px;padding:16px 16px 16px 64px;margin:14px 0;box-shadow:0 8px 22px rgba(155,28,28,.08)}
     .understanding{counter-reset:step}
-    .step::before{
-      counter-increment:step;content:counter(step);
-      position:absolute;left:16px;top:16px;width:36px;height:36px;border-radius:50%;
-      display:grid;place-items:center;color:#fff;font-weight:900;
-      background:conic-gradient(from 210deg,var(--brand) 0 60%,var(--brand-d) 60% 100%);
-      box-shadow:0 4px 12px rgba(155,28,28,.25);
-    }
+    .step::before{counter-increment:step;content:counter(step);position:absolute;left:16px;top:16px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:900;background:conic-gradient(from 210deg,var(--brand) 0 60%,var(--brand-d) 60% 100%);box-shadow:0 4px 12px rgba(155,28,28,.25)}
     .step h3{margin:0 0 8px;font-size:16px;color:var(--brand-d)}
     .step p{margin:8px 0;font-size:14px;line-height:1.65;color:#2b2626}
     .highlight{font-weight:800;color:var(--brand-d)}
     .note{color:var(--muted);font-size:12.5px;margin-top:4px}
     .step ul{margin:8px 0 0 0;padding:0;list-style:none}
     .step li{position:relative;padding-left:28px;margin:8px 0;font-size:14px;line-height:1.55}
-    .step li::before{
-      content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:6px;
-      display:grid;place-items:center;color:#fff;font-size:12px;font-weight:900;
-      background:linear-gradient(135deg,var(--brand),var(--brand-d));
-      box-shadow:0 3px 8px rgba(155,28,28,.2)
-    }
-    .mini{
-      display:inline-block;background:var(--okbg);color:var(--ok);border:1px solid #bef7df;
-      border-radius:999px;padding:4px 10px;font-size:12.5px;margin-top:6px
-    }
+    .step li::before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:900;background:linear-gradient(135deg,var(--brand),var(--brand-d));box-shadow:0 3px 8px rgba(155,28,28,.2)}
+    .mini{display:inline-block;background:var(--okbg);color:var(--ok);border:1px solid #bef7df;border-radius:999px;padding:4px 10px;font-size:12.5px;margin-top:6px}
     @media (min-width:900px){
       .understanding .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
       .understanding .grid .step{margin:0}
@@ -81,12 +49,11 @@
   </style>
 </head>
 <body>
-
   <main class="wrap">
     <div class="title-strip">Employee Level Income Details</div>
 
     <div class="table-wrap">
-      <table>
+      <table id="incomeTable">
         <colgroup><col><col><col><col><col><col></colgroup>
         <thead>
           <tr>
@@ -95,102 +62,136 @@
             <th>Daily Income</th>
             <th>Tasks</th>
             <th>Per Task</th>
-            <th>100 Days<br>(3 months and 10 free days)</th>
+            <th>100 Days</th>
           </tr>
         </thead>
-        <tbody>
-          <tr><td class="lvl">B1</td><td>30,000</td><td>1,000</td><td>4</td><td>250</td><td>100,000</td></tr>
-          <tr><td class="lvl">B2</td><td>80,000</td><td>2,310</td><td>7</td><td>330</td><td>231,000</td></tr>
-          <tr><td class="lvl">B3</td><td>229,000</td><td>7,310</td><td>17</td><td>430</td><td>731,000</td></tr>
-          <tr><td class="lvl">B4</td><td>625,000</td><td>20,580</td><td>28</td><td>735</td><td>2,058,000</td></tr>
-          <tr><td class="lvl">B5</td><td>1,940,000</td><td>64,800</td><td>54</td><td>1,200</td><td>6,480,000</td></tr>
-          <tr><td class="lvl">B6</td><td>5,210,000</td><td>180,000</td><td>80</td><td>2,250</td><td>18,000,000</td></tr>
-          <tr><td class="lvl">B7</td><td>14,000,000</td><td>481,000</td><td>130</td><td>3,700</td><td>48,100,000</td></tr>
-          <tr><td class="lvl">B8</td><td>30,000,000</td><td>1,137,500</td><td>175</td><td>6,500</td><td>113,750,000</td></tr>
-          <tr><td class="lvl">B9</td><td>60,000,000</td><td>2,000,000</td><td>260</td><td>8,750</td><td>200,000,000</td></tr>
-          <tr><td class="lvl">B10</td><td>99,000,000</td><td>4,000,000</td><td>300</td><td>15,000</td><td>400,000,000</td></tr>
-        </tbody>
+        <tbody id="tableBody"></tbody>
       </table>
     </div>
 
-    <!-- Explanation (unchanged content, design preserved) -->
-    <section class="understanding" aria-label="Understanding the 100-day ad-watch plan">
+    <section class="understanding">
       <h2>How the 100-Day Ad-Watching Plan Works</h2>
-
       <div class="grid">
         <article class="step">
           <h3>1) What you actually do each day</h3>
-          <p>You complete short <span class="highlight">advert-watching tasks</span> inside the BAM app. Most adverts are videos hosted on approved platforms (for example, YouTube). To count as a completed task, you:</p>
+          <p>You complete short <span class="highlight">advert-watching tasks</span> in the BAM app. Watch videos, then tap <b>Claim</b> to earn rewards.</p>
           <ul>
             <li>Open the advert from your task list.</li>
-            <li>Watch for at least the minimum time shown on the Claim button (e.g., <span class="highlight">10 seconds</span>).</li>
-            <li>Tap <span class="highlight">Claim</span> in the app to record your view and receive the reward. You have to click claim reward after watching.</li>
+            <li>Watch at least the required time (e.g., 10 seconds).</li>
+            <li>Tap Claim to record your view and get paid.</li>
           </ul>
-          <span class="mini">If you close the video early or don’t press <b>Claim reward</b>, the system cannot reward that task.</span>
+          <span class="mini">If you don’t press <b>Claim</b>, you won’t be rewarded.</span>
         </article>
 
         <article class="step">
           <h3>2) How your earnings are calculated</h3>
-          <p>Each level has a fixed <span class="highlight">number of daily tasks</span> and a fixed <span class="highlight">amount paid per task</span>. Your <b>Daily Income</b> is simply:</p>
-          <p class="mini"><i>Daily Income = Tasks per day × Pay per task</i></p>
-          <p>When you complete your daily tasks for <span class="highlight">100 days</span> (three months plus 10 free days), you reach the <b>100-Day Total</b> shown in the table.</p>
+          <p>Each level has fixed <span class="highlight">tasks</span> and <span class="highlight">pay per task</span>. The <b>Daily Income</b> is Tasks × Pay.</p>
         </article>
 
         <article class="step">
           <h3>3) Wallet, withdrawals, and missed days</h3>
           <ul>
-            <li>Every successful claim is added to your in-app <span class="highlight">commission wallet</span>.</li>
-            <li>You can withdraw on approved withdrawal days to mobile money or bank.</li>
-            <li>If you skip a day, you simply miss that day’s income; your level remains active.</li>
+            <li>Each claim adds to your <b>commission wallet</b>.</li>
+            <li>You can withdraw on approved days.</li>
+            <li>Skipping a day just skips income; your level remains active.</li>
           </ul>
         </article>
 
         <article class="step">
           <h3>4) Break-even and profit (simple idea)</h3>
-          <p>Your <span class="highlight">deposit</span> activates a level. The <b>break-even day</b> is when your total earnings equal the deposit. After that day, everything you earn is <b>pure profit</b> for the rest of the 100-day cycle.</p>
+          <p>Your <b>deposit</b> activates a level. The <b>break-even day</b> is when your total earnings equal your deposit. After that, you earn <b>pure profit</b> until day 100.</p>
         </article>
 
-        <article class="step">
-          <h3>5) Worked Example — Level B4</h3>
-          <p><b>Start:</b> Deposit <span class="highlight">UGX 625,000</span> to unlock B4.</p>
-          <p><b>Daily work:</b> Complete <span class="highlight">28 tasks</span>, each paying <span class="highlight">UGX 735</span>.</p>
-          <p><b>Daily income:</b> 28 × 735 = <span class="highlight">UGX 20,580</span>.</p>
-          <p><b>Break-even:</b> 625,000 ÷ 20,580 ≈ <span class="highlight">31 days</span> (about one month).</p>
-          <p><b>100-day total:</b> 20,580 × 100 = <span class="highlight">UGX 2,058,000</span>.</p>
-          <p><b>Clear profit after 100 days:</b> 2,058,000 − 625,000 = <span class="highlight">UGX 1,433,000</span>.</p>
-          <p class="note">Why B4 is popular: reasonable deposit, steady daily income, and a quick break-even.</p>
-        </article>
-
-        <article class="step">
-          <h3>6) Worked Example — Level B8</h3>
-          <p><b>Start:</b> Deposit <span class="highlight">UGX 30,000,000</span>.</p>
-          <p><b>Daily work:</b> Complete <span class="highlight">175 tasks</span>, each paying <span class="highlight">UGX 6,500</span>.</p>
-          <p><b>Daily income:</b> 175 × 6,500 = <span class="highlight">UGX 1,137,500</span>.</p>
-          <p><b>Break-even:</b> 30,000,000 ÷ 1,137,500 ≈ <span class="highlight">27 days</span>.</p>
-          <p><b>100-day total:</b> 1,137,500 × 100 = <span class="highlight">UGX 113,750,000</span>.</p>
-          <p><b>Clear profit after 100 days:</b> 113,750,000 − 30,000,000 = <span class="highlight">UGX 83,750,000</span>.</p>
-          <p class="note">Best for disciplined users or teams who can complete many tasks every day without missing.</p>
-        </article>
-
-        <article class="step">
-          <h3>7) Quality & compliance rules</h3>
-          <ul>
-            <li>Always watch within the app and claim from the in-app button—<b>external or repeated tabs won’t count</b>.</li>
-            <li>Keep the video visible for the full countdown. Muting is allowed.</li>
-          </ul>
-        </article>
-
-        <article class="step">
-          <h3>8) Tips for consistent earnings</h3>
-          <ul>
-            <li><span class="highlight">Set a daily time</span> to finish tasks so you never forget.</li>
-            <li><span class="highlight">Stable internet</span> reduces buffering and failed claims.</li>
-            <li><span class="highlight">Choose the right level</span>—only pick a level whose daily task count you can comfortably complete.</li>
-            <li><span class="highlight">Track your break-even</span>—after that, it’s all profit to day 100.</li>
-          </ul>
-        </article>
+        <article class="step" id="exampleB4"></article>
+        <article class="step" id="exampleB8"></article>
       </div>
     </section>
   </main>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+    authDomain:"bam1-3d3e5.firebaseapp.com",
+    projectId:"bam1-3d3e5",
+    storageBucket:"bam1-3d3e5.firebasestorage.app",
+    messagingSenderId:"649603741902",
+    appId:"1:649603741902:web:e67f20363f485c0948789f"
+  };
+  const app=initializeApp(firebaseConfig);
+  const db=getFirestore(app);
+  const auth=getAuth(app);
+
+  const currencySymbols={UGX:"UGX",NGN:"₦",TZS:"TSh",KES:"KSh",GHS:"₵",ZMW:"ZK"};
+  const currencyRates={UGX:1,NGN:0.25,TZS:0.62,KES:0.036,GHS:0.0015,ZMW:0.005};
+  let country="UGX";
+
+  const convert=(n)=>Math.floor(Number(n||0)*(currencyRates[country]||1));
+  const fmt=(n)=>`${currencySymbols[country]||"UGX"} ${convert(n).toLocaleString()}`;
+
+  const LEVELS=[
+    {lvl:"B1",dep:30000,daily:1000,tasks:4,per:250,total:100000},
+    {lvl:"B2",dep:80000,daily:2310,tasks:7,per:330,total:231000},
+    {lvl:"B3",dep:229000,daily:7310,tasks:17,per:430,total:731000},
+    {lvl:"B4",dep:625000,daily:20580,tasks:28,per:735,total:2058000},
+    {lvl:"B5",dep:1940000,daily:64800,tasks:54,per:1200,total:6480000},
+    {lvl:"B6",dep:5210000,daily:180000,tasks:80,per:2250,total:18000000},
+    {lvl:"B7",dep:14000000,daily:481000,tasks:130,per:3700,total:48100000},
+    {lvl:"B8",dep:30000000,daily:1137500,tasks:175,per:6500,total:113750000},
+    {lvl:"B9",dep:60000000,daily:2000000,tasks:260,per:8750,total:200000000},
+    {lvl:"B10",dep:99000000,daily:4000000,tasks:300,per:15000,total:400000000}
+  ];
+
+  function renderTable(){
+    const body=document.getElementById("tableBody");
+    body.innerHTML="";
+    LEVELS.forEach(v=>{
+      body.insertAdjacentHTML("beforeend",`
+        <tr>
+          <td class="lvl">${v.lvl}</td>
+          <td>${fmt(v.dep)}</td>
+          <td>${fmt(v.daily)}</td>
+          <td>${v.tasks}</td>
+          <td>${fmt(v.per)}</td>
+          <td>${fmt(v.total)}</td>
+        </tr>`);
+    });
+  }
+
+  function renderExamples(){
+    const B4=LEVELS.find(v=>v.lvl==="B4");
+    const B8=LEVELS.find(v=>v.lvl==="B8");
+    document.getElementById("exampleB4").innerHTML=`
+      <h3>5) Worked Example — Level B4</h3>
+      <p><b>Start:</b> Deposit <span class="highlight">${fmt(B4.dep)}</span>.</p>
+      <p><b>Daily work:</b> ${B4.tasks} tasks × ${fmt(B4.per)} = <span class="highlight">${fmt(B4.daily)}</span>.</p>
+      <p><b>Break-even:</b> ${fmt(B4.dep)} ÷ ${fmt(B4.daily)} ≈ <span class="highlight">31 days</span>.</p>
+      <p><b>100-day total:</b> ${fmt(B4.total)}</p>
+      <p><b>Profit:</b> ${fmt(B4.total-B4.dep)}</p>`;
+    document.getElementById("exampleB8").innerHTML=`
+      <h3>6) Worked Example — Level B8</h3>
+      <p><b>Start:</b> Deposit <span class="highlight">${fmt(B8.dep)}</span>.</p>
+      <p><b>Daily work:</b> ${B8.tasks} tasks × ${fmt(B8.per)} = <span class="highlight">${fmt(B8.daily)}</span>.</p>
+      <p><b>Break-even:</b> ${fmt(B8.dep)} ÷ ${fmt(B8.daily)} ≈ <span class="highlight">27 days</span>.</p>
+      <p><b>100-day total:</b> ${fmt(B8.total)}</p>
+      <p><b>Profit:</b> ${fmt(B8.total-B8.dep)}</p>`;
+  }
+
+  async function getUserCountry(uid){
+    const ref=doc(db,"countries",uid);
+    const s=await getDoc(ref);
+    return s.exists()? (s.data().country||"UGX"):"UGX";
+  }
+
+  onAuthStateChanged(auth, async (user)=>{
+    if(!user){return;}
+    country=await getUserCountry(user.uid);
+    renderTable();
+    renderExamples();
+  });
+</script>
 </body>
 </html>
