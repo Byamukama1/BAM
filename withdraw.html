@@ -21,13 +21,9 @@
     .row{display:grid;gap:10px}
     @media(min-width:720px){ .row{grid-template-columns:1fr 1fr} }
     label{font-size:12px;color:var(--muted);font-weight:700;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
-    input[type="text"]{
-      width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;font-weight:600
-    }
+    input[type="text"]{width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;font-weight:600}
     .chips{display:flex;flex-wrap:wrap;gap:10px}
-    .chip{
-      padding:10px 12px;border:1px solid #f3cf69;background:#fff6e0;border-radius:12px;font-weight:900;cursor:pointer;
-    }
+    .chip{padding:10px 12px;border:1px solid #f3cf69;background:#fff6e0;border-radius:12px;font-weight:900;cursor:pointer}
     .chip.active{background:var(--gold);border-color:#d6b338}
     .btn{
       appearance:none;border:none;border-radius:12px;padding:12px 14px;font-weight:900;cursor:pointer;
@@ -76,10 +72,8 @@
         <div>
           <label>Registered name</label>
           <input id="regName" type="text" placeholder="e.g. Jane Doe" />
-
           <label style="margin-top:10px">Phone number</label>
           <input id="regPhone" type="text" inputmode="numeric" placeholder="07XXXXXXXX" />
-
           <div style="margin-top:8px;display:flex;gap:8px">
             <button id="saveNumBtn" class="btn secondary small">Save number</button>
           </div>
@@ -87,7 +81,6 @@
             You can keep <b>one</b> registered number. Edit the fields above to change it.
           </div>
         </div>
-
         <div>
           <label>Amount</label>
           <div class="chips" id="amountChips"></div>
@@ -135,8 +128,14 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    /* -------- Currency Conversion -------- */
+    const currencySymbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
+    const currencyRates   = { UGX:1, NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005 };
+    let userCountry = "UGX";
+    const convert = (n)=>Math.floor(Number(n||0)*(currencyRates[userCountry]||1));
+    const fmt = (n)=>`${currencySymbols[userCountry]||"UGX"} ${convert(n).toLocaleString()}`;
+
     const $ = (id)=>document.getElementById(id);
-    const UGX = (n)=>"UGX " + Number(n||0).toLocaleString("en-UG");
     const todayKey = ()=> new Date().toISOString().slice(0,10);
 
     const LEVELS_DESC = ["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"];
@@ -147,109 +146,88 @@
     const LADDER = [3000,5000,15000,45000,150000,370000,980000,3000000,8500000,15000000];
 
     function highestVerifiedLevel(u){
-      for (const code of LEVELS_DESC){
-        if (u?.[code]?.status === "verified") return code;
-      }
+      for (const code of LEVELS_DESC){ if (u?.[code]?.status === "verified") return code; }
       return "INTERN";
     }
     function allowedAmounts(level){
       const min = MIN_BY_LEVEL[level] ?? 5000;
       return LADDER.filter(v => v >= min);
     }
-    function show(msg, ok=false){
-      $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${msg}</div>`;
-    }
-    function isBlockedDay(){
-      const d = new Date().getDay();
-      return d === 0 || d === 6;
+    function show(msg, ok=false){ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${msg}</div>`; }
+    function isBlockedDay(){ const d = new Date().getDay(); return d === 0 || d === 6; }
+
+    async function getUserCountry(uid){
+      const ref = doc(db,"countries",uid);
+      const snap = await getDoc(ref);
+      return snap.exists() ? (snap.data().country||"UGX") : "UGX";
     }
 
     async function alreadyWithdrewToday(uid){
-      const qy = query(collection(db,"withdraws"),
-        where("uid","==", uid),
-        where("dateKey","==", todayKey())
-      );
+      const qy = query(collection(db,"withdraws"), where("uid","==",uid), where("dateKey","==",todayKey()));
       const snap = await getDocs(qy);
       return !snap.empty;
     }
 
     async function refundPendingWithdraws(uid){
-      const qy = query(collection(db,"withdraws"),
-        where("uid","==", uid),
-        where("status","==","pending")
-      );
+      const qy = query(collection(db,"withdraws"), where("uid","==",uid), where("status","==","pending"));
       const snap = await getDocs(qy);
       if (snap.empty) return 0;
       let totalRefunded = 0;
-
       for (const docSnap of snap.docs){
         const w = docSnap.data();
         const amount = Number(w.amount||0);
         totalRefunded += amount;
-
         await runTransaction(db, async (tx)=>{
           const uref = doc(db,"users",uid);
           const usnap = await tx.get(uref);
-          const userData = usnap.exists() ? usnap.data() : {};
-          const newBalance = Number(userData.commissionWallet||0) + amount;
-
-          tx.update(uref,{ commissionWallet: newBalance, updatedAt: serverTimestamp() });
-          tx.update(docSnap.ref, { status:"refunded", refundedAt: serverTimestamp() });
+          const userData = usnap.exists()?usnap.data():{};
+          const newBalance = Number(userData.commissionWallet||0)+amount;
+          tx.update(uref,{commissionWallet:newBalance,updatedAt:serverTimestamp()});
+          tx.update(docSnap.ref,{status:"refunded",refundedAt:serverTimestamp()});
         });
-
         await deleteDoc(docSnap.ref);
       }
       return totalRefunded;
     }
 
     function normalizeSingle(arr){
-      if (!Array.isArray(arr) || !arr.length) return { phone:"", name:"" };
-      const v = typeof arr[0] === "string" ? { phone: arr[0], name:"" } : arr[0];
-      return { phone: String(v.phone||""), name: String(v.name||"") };
+      if(!Array.isArray(arr)||!arr.length)return{phone:"",name:""};
+      const v=typeof arr[0]==="string"?{phone:arr[0],name:""}:arr[0];
+      return{phone:String(v.phone||""),name:String(v.name||"")};
     }
 
     function renderAmountChips(list){
-      const box = $("amountChips"); box.innerHTML = "";
+      const box=$("amountChips");box.innerHTML="";
       list.forEach(v=>{
-        const chip = document.createElement("button");
-        chip.type = "button";
-        chip.className = "chip";
-        chip.textContent = Number(v).toLocaleString("en-UG");
-        chip.dataset.amount = v;
-        chip.addEventListener("click", ()=>{
+        const chip=document.createElement("button");
+        chip.type="button";chip.className="chip";chip.textContent=fmt(v);
+        chip.dataset.amount=v;
+        chip.addEventListener("click",()=>{
           box.querySelectorAll(".chip").forEach(c=>c.classList.remove("active"));
           chip.classList.add("active");
         });
         box.appendChild(chip);
       });
-      const first = box.querySelector(".chip"); if (first) first.classList.add("active");
+      const first=box.querySelector(".chip");if(first)first.classList.add("active");
     }
 
-    function fmtDate(ts){
-      try{ if (ts?.toDate) return ts.toDate().toLocaleString(); }catch{}
-      return new Date().toLocaleString();
-    }
+    function fmtDate(ts){try{if(ts?.toDate)return ts.toDate().toLocaleString();}catch{}return new Date().toLocaleString();}
 
     async function loadHistory(uid){
-      const list = $("history");
-      list.innerHTML = `<div class="muted">Loading recent withdrawals…</div>`;
+      const list=$("history");
+      list.innerHTML=`<div class="muted">Loading recent withdrawals…</div>`;
       try{
-        const qy = query(
-          collection(db,"withdraws"),
-          where("uid","==", uid),
-          orderBy("createdAt","desc"),
-          limit(20)
-        );
-        const snap = await getDocs(qy);
-        if (snap.empty){ list.innerHTML = `<div class="muted">No withdrawals yet.</div>`; return; }
-        list.innerHTML = "";
+        const qy=query(collection(db,"withdraws"),where("uid","==",uid),orderBy("createdAt","desc"),limit(20));
+        const snap=await getDocs(qy);
+        if(snap.empty){list.innerHTML=`<div class="muted">No withdrawals yet.</div>`;return;}
+        list.innerHTML="";
         snap.forEach(d=>{
-          const w = d.data();
-          const row = document.createElement("div");
-          row.className = "item";
-          row.innerHTML = `
+          const w=d.data();
+          const row=document.createElement("div");
+          row.className="item";
+          row.innerHTML=`
             <div>
-              <div class="amt">${UGX(w.amount||0)}</div>
+              <div class="amt">${fmt(w.amount||0)}</div>
               <div class="muted">${w.method||"—"}</div>
             </div>
             <div style="text-align:right">
@@ -258,107 +236,89 @@
             </div>`;
           list.appendChild(row);
         });
-      }catch(e){
-        console.error(e);
-        list.innerHTML = `<div class="muted">Could not load history.</div>`;
-      }
+      }catch(e){list.innerHTML=`<div class="muted">Could not load history.</div>`;}
     }
 
     onAuthStateChanged(auth, async (user)=>{
-      if (!user){ location.href = "login.html"; return; }
-      const uid = user.uid;
-      const uRef = doc(db,"users",uid);
-      const uSnap = await getDoc(uRef);
-      const u = uSnap.exists() ? uSnap.data() : {};
+      if(!user){location.href="login.html";return;}
+      const uid=user.uid;
+      userCountry=await getUserCountry(uid);
 
-      const level = highestVerifiedLevel(u);
-      $("levelTag").textContent = level;
+      const uRef=doc(db,"users",uid);
+      const uSnap=await getDoc(uRef);
+      const u=uSnap.exists()?uSnap.data():{};
+
+      const level=highestVerifiedLevel(u);
+      $("levelTag").textContent=level;
       renderAmountChips(allowedAmounts(level));
 
-      if (level === "INTERN"){
-        const refunded = await refundPendingWithdraws(uid);
-        if (refunded > 0){
-          show(`UGX ${refunded.toLocaleString("en-UG")} refunded to your wallet. Interns cannot withdraw.`, true);
-        }
-        show(`The purpose of internship is to learn how to do daily tasks. For income and withdrawals, you can become our employee by joining any level. Thank you.`, false);
-        $("submitBtn").disabled = true;
+      if(level==="INTERN"){
+        const refunded=await refundPendingWithdraws(uid);
+        if(refunded>0){show(`${fmt(refunded)} refunded to your wallet. Interns cannot withdraw.`,true);}
+        show(`Interns cannot withdraw. Upgrade to any level to unlock withdrawals.`,false);
+        $("submitBtn").disabled=true;
       }
 
-      let single = normalizeSingle(u.depositNumbers);
-      $("regName").value = single.name || "";
-      $("regPhone").value = single.phone || "";
+      let single=normalizeSingle(u.depositNumbers);
+      $("regName").value=single.name||"";
+      $("regPhone").value=single.phone||"";
 
-      $("saveNumBtn").onclick = async ()=>{
-        single = {
-          name: ($("regName").value||"").trim(),
-          phone: ($("regPhone").value||"").trim()
-        };
-        await setDoc(uRef, { depositNumbers: [single] }, { merge:true });
-        show("Registered number saved.", true);
+      $("saveNumBtn").onclick=async()=>{
+        single={name:$("regName").value.trim(),phone:$("regPhone").value.trim()};
+        await setDoc(uRef,{depositNumbers:[single]},{merge:true});
+        show("Registered number saved.",true);
       };
 
-      $("balance").textContent = UGX(u.commissionWallet || 0);
+      $("balance").textContent=fmt(u.commissionWallet||0);
 
-      if (isBlockedDay()){
+      if(isBlockedDay()){
         show("Withdrawals are closed on Saturdays and Sundays.");
-        $("submitBtn").disabled = true;
+        $("submitBtn").disabled=true;
       }
 
       await loadHistory(uid);
 
-      $("submitBtn").onclick = async ()=>{
-        const activeChip = document.querySelector(".chip.active");
-        const amount = activeChip ? Number(activeChip.dataset.amount) : 0;
-        const phone = ($("regPhone").value||"").trim();
-        const name  = ($("regName").value||"").trim();
-        if (!amount){ show("Select an amount."); return; }
-        if (!phone){ show("Enter your registered phone number."); return; }
-
-        const methodLabel = (name ? `${name} — ${phone}` : phone);
+      $("submitBtn").onclick=async()=>{
+        const activeChip=document.querySelector(".chip.active");
+        const amount=activeChip?Number(activeChip.dataset.amount):0;
+        const phone=$("regPhone").value.trim();
+        const name=$("regName").value.trim();
+        if(!amount){show("Select an amount.");return;}
+        if(!phone){show("Enter your registered phone number.");return;}
+        const methodLabel=name?`${name} — ${phone}`:phone;
 
         try{
-          if (await alreadyWithdrewToday(uid)){
-            show("You have already made a withdrawal today. Try again tomorrow.");
-            return;
+          if(await alreadyWithdrewToday(uid)){
+            show("You have already made a withdrawal today. Try again tomorrow.");return;
           }
-          if (isBlockedDay()){
-            show("Withdrawals are closed on Saturdays and Sundays."); return;
-          }
+          if(isBlockedDay()){show("Withdrawals are closed on weekends.");return;}
 
-          await runTransaction(db, async (tx)=>{
-            const ref = doc(db,"users",uid);
-            const snap = await tx.get(ref);
-            if (!snap.exists()) throw new Error("User not found.");
-            const data = snap.data();
-            const balance = Number(data.commissionWallet || 0);
-            if (balance < amount) throw new Error("Insufficient commission wallet balance.");
-
-            tx.set(ref, { depositNumbers: [{ phone, name }], commissionWallet: balance - amount, updatedAt: serverTimestamp() }, { merge:true });
-
-            const wRef = doc(collection(db,"withdraws"));
-            tx.set(wRef, {
-              uid,
-              amount,
-              method: methodLabel,
-              methodPhone: phone || null,
-              methodName: name || null,
-              status: "pending",
-              dateKey: todayKey(),
-              createdAt: serverTimestamp(),
-              levelUsed: level
+          await runTransaction(db,async(tx)=>{
+            const ref=doc(db,"users",uid);
+            const snap=await tx.get(ref);
+            if(!snap.exists())throw new Error("User not found.");
+            const data=snap.data();
+            const balance=Number(data.commissionWallet||0);
+            if(balance<amount)throw new Error("Insufficient commission wallet balance.");
+            tx.set(ref,{depositNumbers:[{phone,name}],commissionWallet:balance-amount,updatedAt:serverTimestamp()},{merge:true});
+            const wRef=doc(collection(db,"withdraws"));
+            tx.set(wRef,{
+              uid,amount,amountLocal:convert(amount),currency:userCountry,
+              method:methodLabel,methodPhone:phone,methodName:name,
+              status:"pending",dateKey:todayKey(),createdAt:serverTimestamp(),levelUsed:level
             });
           });
 
-          show(`Withdrawal submitted: ${UGX(amount)} → ${methodLabel}. Status: pending.`, true);
-          $("submitBtn").disabled = true;
+          show(`Withdrawal submitted: ${fmt(amount)} → ${methodLabel}. Status: pending.`,true);
+          $("submitBtn").disabled=true
           await loadHistory(uid);
-          $("balance").textContent = UGX((u.commissionWallet||0) - amount);
-        }catch(e){
+          $("balance").textContent = fmt((u.commissionWallet || 0) - amount);
+        } catch (e) {
           console.error(e);
           show(e.message || "Failed to submit withdrawal.");
         }
       };
     });
-    </script>
+  </script>
 </body>
 </html>
