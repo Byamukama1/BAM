@@ -93,7 +93,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
   import {
-    getFirestore, doc, getDoc, query, collection, where, orderBy, limit, getDocs, runTransaction, serverTimestamp
+    getFirestore, doc, getDoc, updateDoc, query, collection, where, orderBy, limit, getDocs, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
   // 🔥 Firebase Config
@@ -111,7 +111,7 @@
   const auth = getAuth(app);
   const $ = id => document.getElementById(id);
 
-  // 🪙 Currency Format
+  // 🪙 Currency format
   const currencySymbols = { UGX: "UGX", NGN: "₦", TZS: "TSh", KES: "KSh", GHS: "₵", ZMW: "ZK" };
   const defaultCurrency = "UGX";
   const fmt = (n, c) => `${currencySymbols[c] || c} ${Number(n || 0).toLocaleString()}`;
@@ -127,7 +127,7 @@
     return snap.data().country || defaultCurrency;
   }
 
-  // 💳 Get pending deposit
+  // 💳 Get most recent pending deposit
   async function getPendingDeposit(uid) {
     const q = query(
       collection(db, "deposits"),
@@ -157,7 +157,7 @@
     $("paymentDetails").style.display = "flex";
   }
 
-  // 🇺🇬 Uganda Payment Option
+  // 🇺🇬 Uganda payment option
   function showUganda() {
     $("instructions").textContent = "Send to the MTN number below, paste your confirmation message, and mark successful.";
     $("payName").textContent = "Name: Mushimiyimaana Jacenta";
@@ -166,7 +166,7 @@
     $("eversendSection").style.display = "none";
   }
 
-  // 🌐 Eversend Option
+  // 🌐 Eversend option
   function showEversend() {
     $("instructions").textContent = "Please complete your payment using the Eversend link below.";
     $("payName").textContent = "Eversend Payment";
@@ -175,66 +175,78 @@
     $("eversendSection").style.display = "block";
   }
 
-  // 👤 When user logged in
+  // ✅ Handle payment confirmation
+  async function handleSuccess() {
+    if (!depId) {
+      show("No pending deposit found.");
+      return;
+    }
+
+    const smsText = $("sms").value.trim();
+    if (!smsText) {
+      show("Paste your payment confirmation message first.");
+      return;
+    }
+
+    const btn = $("markSuccess");
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+
+    try {
+      // Step 1️⃣ Read both deposit and user before writing
+      const depRef = doc(db, "deposits", depId);
+      const userRef = doc(db, "users", currentUser.uid);
+
+      const [depSnap, userSnap] = await Promise.all([getDoc(depRef), getDoc(userRef)]);
+      if (!depSnap.exists()) throw new Error("Deposit not found.");
+      if (!userSnap.exists()) throw new Error("User record not found.");
+
+      const dep = depSnap.data();
+      const user = userSnap.data();
+
+      const newBalance = (user.mainWallet || 0) + (dep.amount || 0);
+
+      // Step 2️⃣ Update deposit and user separately (after reads)
+      await Promise.all([
+        updateDoc(depRef, {
+          status: "successful",
+          rawMessage: smsText,
+          validatedAt: serverTimestamp()
+        }),
+        updateDoc(userRef, {
+          mainWallet: newBalance,
+          updatedAt: serverTimestamp()
+        })
+      ]);
+
+      show(`✅ Deposit marked successful and ${fmt(dep.amount, country)} added to your wallet.`, true);
+      btn.textContent = "Successful";
+    } catch (e) {
+      console.error(e);
+      show(e.message || "Failed to update wallet. Try again.");
+      btn.disabled = false;
+      btn.textContent = "Successful";
+    }
+  }
+
+  // 👤 Auth state
   onAuthStateChanged(auth, async (u) => {
-    if (!u) { location.href = "login.html"; return; }
+    if (!u) {
+      location.href = "login.html";
+      return;
+    }
     currentUser = u;
     country = await getUserCountry(u.uid);
     await loadDeposit();
 
-    // Country-specific payment options
-    if (country === "UGX" || country === "UG") { showUganda(); }
-    else { showEversend(); }
+    // Country-specific UI
+    if (country === "UGX" || country === "UG") showUganda();
+    else showEversend();
 
-    // ✅ SMS confirmation for Uganda
-    if (country === "UGX" || country === "UG") {
-      const sms = $("sms"), btn = $("markSuccess");
-
-      sms.addEventListener("input", () => { btn.disabled = !sms.value.trim(); });
-
-      btn.addEventListener("click", async () => {
-        if (!depId) { show("No pending deposit found."); return; }
-
-        btn.disabled = true;
-        btn.textContent = "Processing...";
-
-        try {
-          await runTransaction(db, async (tx) => {
-            // Deposit reference
-            const ref = doc(db, "deposits", depId);
-            const snap = await tx.get(ref);
-            if (!snap.exists()) throw new Error("Deposit not found.");
-
-            // 1️⃣ Mark deposit successful
-            tx.update(ref, {
-              status: "successful",
-              rawMessage: sms.value.trim(),
-              validatedAt: serverTimestamp()
-            });
-
-            // 2️⃣ Add amount to user's wallet
-            const uref = doc(db, "users", currentUser.uid);
-            const usnap = await tx.get(uref);
-            if (usnap.exists()) {
-              const udata = usnap.data();
-              const newBalance = (udata.mainWallet || 0) + (depData.amount || 0);
-              tx.update(uref, {
-                mainWallet: newBalance,
-                updatedAt: serverTimestamp()
-              });
-            }
-          });
-
-          show(`✅ Deposit marked successful and ${fmt(depData.amount, country)} added to your wallet.`, true);
-          btn.textContent = "Successful";
-        } catch (e) {
-          console.error(e);
-          show(e.message || "Failed to update wallet. Try again.");
-          btn.disabled = false;
-          btn.textContent = "Successful";
-        }
-      });
-    }
+    // Enable button when message is typed
+    const sms = $("sms"), btn = $("markSuccess");
+    sms.addEventListener("input", () => { btn.disabled = !sms.value.trim(); });
+    btn.addEventListener("click", handleSuccess);
   });
 </script>
 </body>
