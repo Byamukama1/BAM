@@ -62,7 +62,6 @@
   
   
 
-
 <script type="module">  
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";  
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";  
@@ -70,7 +69,7 @@
     getFirestore, collection, query, orderBy, getDocs,  
     doc, getDoc, runTransaction, where, serverTimestamp  
   } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";  
-  
+
   const firebaseConfig = {  
     apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",  
     authDomain: "bam1-3d3e5.firebaseapp.com",  
@@ -79,21 +78,21 @@
     messagingSenderId: "649603741902",  
     appId: "1:649603741902:web:e67f20363f485c0948789f",  
   };  
-  
+
   const app = initializeApp(firebaseConfig);  
   const auth = getAuth(app);  
   const db = getFirestore(app);  
-  
+
   const $ = (id)=>document.getElementById(id);  
   const todayKey = ()=> new Date().toISOString().slice(0,10);  
   const shuffle = (arr)=>{for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}  
-  
+
   /* ---- Currency ---- */  
   const symbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };  
   const rates   = { UGX:1, NGN:0.25, TZS:0.62, KES:0.036, GHS:0.0015, ZMW:0.005 };  
   let userCurrency = "UGX";  
   const fmt = (n)=>`${symbols[userCurrency]||"UGX"} ${parseFloat(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;  
-  
+
   async function getUserCurrency(uid){  
     try{  
       const ref = doc(db,"countries",uid);  
@@ -101,7 +100,7 @@
       return snap.exists()? (snap.data().country || "UGX") : "UGX";  
     }catch{return "UGX";}  
   }  
-  
+
   /* ---- Levels ---- */  
   const LEVEL_RATES = {  
     INTERN:{perTask:300,dailyMax:5},  
@@ -111,14 +110,14 @@
     B8:{perTask:6500,dailyMax:175}, B9:{perTask:8750,dailyMax:260}, B10:{perTask:15000,dailyMax:300}  
   };  
   const levelsDesc=["B10","B9","B8","B7","B6","B5","B4","B3","B2","B1"];  
-  
+
   function showBanner(html,ok=false){  
     const node=document.createElement("div");  
     node.className="banner"+(ok?" ok":"");  
     node.innerHTML=html;  
     const area=$("statusArea"); area.innerHTML=""; area.appendChild(node);  
   }  
-  
+
   function highestLevelWithStatus(userDoc,status){  
     for(const code of levelsDesc){  
       const entry=userDoc?.[code];  
@@ -126,22 +125,22 @@
     }  
     return null;  
   }  
-  
+
   async function getTodayEvents(uid){  
     const evCol=collection(db,"tasks",uid,"events");  
     const qy=query(evCol,where("dateKey","==",todayKey()));  
     const snap=await getDocs(qy);  
     const ev=[]; snap.forEach(d=>ev.push({id:d.id,...d.data()})); return ev;  
   }  
-  
+
   async function countToday(uid){return (await getTodayEvents(uid)).length;}  
   async function alreadyDoneToday(uid,adId){  
     const ev=await getTodayEvents(uid);  
     return ev.some(e=>String(e.adId)===String(adId));  
   }  
-  
+
   /* ---- Render Each Ad ---- */  
-  async function renderAdCard(container,ad,levelCfg,uid){  
+  async function renderAdCard(container,ad,levelCfg,uid,internExpired=false){  
     const card=document.createElement("section");  
     card.className="card";  
     const btnId=`btn_${ad.id}`;  
@@ -149,36 +148,38 @@
     // ✅ Two decimal currency calculation
     const earnAmount = (levelCfg.perTask * (rates[userCurrency] || 1)).toFixed(2);
     const earnStr = fmt(earnAmount);
-  
+
     // ✅ YouTube or uploaded video  
     let mediaHTML="";  
     let ytIframe=null, videoEl=null;  
-  
+
     if(ad.url?.includes("youtube.com") || ad.url?.includes("youtu.be")){  
       const videoId = ad.url.split("v=")[1]?.split("&")[0] || ad.url.split("/").pop();  
       mediaHTML = `<iframe id="yt_${ad.id}" src="https://www.youtube.com/embed/${videoId}?enablejsapi=1&mute=1&autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;  
     }else{  
       mediaHTML = `<video id="vid_${ad.id}" src="${ad.url}" muted playsinline autoplay controls></video>`;  
     }  
-  
+
     card.innerHTML=`  
       <div class="title">${ad.title||"Watch this advert"}</div>  
       <div class="media">${mediaHTML}</div>  
       <div class="desc">${ad.description||""}</div>  
       <div class="controls">  
         <span class="earn">Earn ${earnStr}</span>  
-        <button class="btn primary" id="${btnId}">Claim (10s)</button>  
+        <button class="btn primary" id="${btnId}">${internExpired ? "Internship Ended" : "Claim (10s)"}</button>  
       </div>`;  
     container.appendChild(card);  
-  
+
     const btn = card.querySelector(`#${btnId}`);  
+    if(internExpired){ btn.disabled = true; return; }
+
     videoEl=card.querySelector("video");  
     ytIframe=card.querySelector("iframe");  
-  
+
     if(await alreadyDoneToday(uid,ad.id)){btn.textContent="Already claimed";btn.disabled=true;return;}  
-  
+
     let started=false, finished=false, timer=null;  
-  
+
     function startCountdown(){  
       started=true; const start=Date.now(); btn.disabled=true;  
       timer=setInterval(()=>{  
@@ -187,25 +188,21 @@
         else btn.textContent=`Claim (${10-elapsed}s)`;  
       },300);  
     }  
-  
+
     btn.addEventListener("click", async()=>{  
-      // STEP 1: Unmute and play on first click  
       if(!started){  
-        if(videoEl){  
-          videoEl.muted=false;  
-          videoEl.play().catch(()=>{});  
-        } else if(ytIframe){  
+        if(videoEl){videoEl.muted=false;videoEl.play().catch(()=>{});}  
+        else if(ytIframe){  
           ytIframe.contentWindow.postMessage('{"event":"command","func":"unMute","args":""}', '*');  
           ytIframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');  
         }  
         startCountdown();  
         return;  
       }  
-  
-      // STEP 2: After countdown → process reward  
+
       if(!finished || btn.disabled) return;  
       btn.disabled=true; btn.textContent="Processing…";  
-  
+
       try{  
         const user=auth.currentUser; if(!user) throw new Error("Please sign in again.");  
         const done=await countToday(user.uid);  
@@ -217,7 +214,7 @@
           btn.textContent="Already claimed"; btn.disabled=true;  
           showBanner("You already completed this advert today."); return;  
         }  
-  
+
         const actualReward=parseFloat(earnAmount);  
         await runTransaction(db, async(tx)=>{  
           const uref=doc(db,"users",user.uid);  
@@ -236,7 +233,7 @@
             createdAt:serverTimestamp(),country:userCurrency  
           });  
         });  
-  
+
         showBanner(`Great! +${fmt(actualReward)} added to your commission wallet.`,true);  
         btn.textContent="Already claimed";btn.disabled=true;  
       }catch(e){  
@@ -247,8 +244,8 @@
       }  
     });  
   }  
-  
-  async function loadAdvertsAndRender(cfg,uid){  
+
+  async function loadAdvertsAndRender(cfg,uid,internExpired=false){  
     const list=$("adList");  
     const snap=await getDocs(query(collection(db,"adverts"),orderBy("createdAt","desc")));  
     if(snap.empty){  
@@ -257,9 +254,9 @@
     const ads=[];snap.forEach(d=>ads.push({id:d.id,...d.data()}));  
     shuffle(ads);  
     list.innerHTML="";  
-    for(const ad of ads.slice(0,cfg.dailyMax)){await renderAdCard(list,ad,cfg,uid);}  
+    for(const ad of ads.slice(0,cfg.dailyMax)){await renderAdCard(list,ad,cfg,uid,internExpired);}  
   }  
-  
+
   onAuthStateChanged(auth, async(user)=>{  
     if(!user){location.href="login.html";return;}  
     userCurrency=await getUserCurrency(user.uid);  
@@ -270,13 +267,24 @@
     const cfg=verified?LEVEL_RATES[verified]:LEVEL_RATES.INTERN;  
     const rewardPerTask=(cfg.perTask*(rates[userCurrency]||1)).toFixed(2);  
     const rateText=fmt(rewardPerTask);  
-  
+
+    // ✅ Check internship duration (3 days)
+    let internExpired = false;
+    if(!verified && u?.createdAt){
+      const created = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+      const days = Math.floor((Date.now() - created.getTime()) / (1000*60*60*24));
+      if(days >= 3){ internExpired = true; }
+    }
+
     if(verified){  
       showBanner(`Status: <b>Verified (${verified})</b>. You earn <b>${rateText}</b> per task, up to <b>${cfg.dailyMax}</b> tasks daily.`,true);  
+    }else if(internExpired){
+      showBanner(`🎓 Your Internship has ended. Please <b>upgrade to B1</b> to continue earning.`,false);
     }else{  
-      showBanner(`Internship mode. You earn <b>${rateText}</b> per task.`,true);  
+      showBanner(`Internship mode. You earn <b>${rateText}</b> per task for 3 days.`,true);  
     }  
-    await loadAdvertsAndRender(cfg,user.uid);  
+
+    await loadAdvertsAndRender(cfg,user.uid,internExpired);  
   });  
 </script>
 </body>
