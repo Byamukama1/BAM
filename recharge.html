@@ -77,6 +77,7 @@
       collection, addDoc
     } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
+    // 🔥 Firebase Configuration
     const firebaseConfig = {
       apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
       authDomain: "bam1-3d3e5.firebaseapp.com",
@@ -97,7 +98,7 @@
     const convert = (n)=>Math.floor(Number(n||0)*(currencyRates[userCountry]||1));
     const fmt = (n)=>`${currencySymbols[userCountry]||"UGX"} ${convert(n).toLocaleString()}`;
 
-    /* --------- Page Logic --------- */
+    /* --------- Helpers --------- */
     const $ = (id)=>document.getElementById(id);
     const show = (msg, ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${msg}</div>`; };
 
@@ -176,24 +177,44 @@
       await saveNumbers();$("phoneInput").value="";updateSummary();
     });
 
+    // ✅ When user clicks Continue
     $("continueBtn").addEventListener("click",async()=>{
       if(!currentUser){show("Please sign in again.");return;}
       if(!selectedPhone){show("Select (or add) a deposit number first.");return;}
       if(!selectedAmount){show("Choose an amount to deposit.");return;}
 
       try{
-        const depRef=await addDoc(collection(db,"deposits"),{
+        // 1️⃣ Create a pending deposit
+        const depRef = await addDoc(collection(db,"deposits"),{
           uid:currentUser.uid,
           phone:selectedPhone,
-          amountUGX:selectedAmount, // always store in UGX for consistency
-          amountLocal:convert(selectedAmount),
+          amount:selectedAmount,
           currency:userCountry,
           status:"pending",
           createdAt:serverTimestamp()
         });
-        show("Creating deposit…",true);
-        location.href=`eversend.html?deposit=${encodeURIComponent(depRef.id)}`;
-      }catch(e){console.error(e);show("Failed to create deposit. Please try again.");}
+
+        // 2️⃣ Automatically log a related task (deposit initiation)
+        await addDoc(collection(db,"tasks",currentUser.uid,"events"),{
+          type:"deposit_created",
+          amount:selectedAmount,
+          phone:selectedPhone,
+          depositId:depRef.id,
+          createdAt:serverTimestamp(),
+          message:`Deposit of ${fmt(selectedAmount)} initiated via ${selectedPhone}`
+        });
+
+        show("Deposit created and logged as a task.",true);
+
+        // 3️⃣ Redirect to payment page
+        setTimeout(()=>{
+          location.href=`eversend.html?deposit=${encodeURIComponent(depRef.id)}`;
+        },1500);
+
+      }catch(e){
+        console.error(e);
+        show("Failed to create deposit. Try again.");
+      }
     });
 
     async function getUserCountry(uid){
