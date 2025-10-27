@@ -87,106 +87,155 @@
     </section>
   </main>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
-    import {
-      getFirestore, doc, getDoc, query, collection, where, orderBy, limit, getDocs, runTransaction, serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+ 
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
-      authDomain: "bam1-3d3e5.firebaseapp.com",
-      projectId: "bam1-3d3e5",
-      storageBucket: "bam1-3d3e5.firebasestorage.app",
-      messagingSenderId: "649603741902",
-      appId: "1:649603741902:web:e67f20363f485c0948789f"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-    const $ = id=>document.getElementById(id);
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+  import {
+    getFirestore, doc, getDoc, query, collection, where, orderBy, limit, getDocs, runTransaction, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-    const currencySymbols = { UGX:"UGX", NGN:"₦", TZS:"TSh", KES:"KSh", GHS:"₵", ZMW:"ZK" };
-    const defaultCurrency = "UGX";
-    const fmt = (n,c)=>`${currencySymbols[c]||c} ${Number(n||0).toLocaleString()}`;
-    const show = (m,ok=false)=>{ $("statusArea").innerHTML = `<div class="banner ${ok?'ok':''}">${m}</div>`; };
+  // 🔥 Firebase Config
+  const firebaseConfig = {
+    apiKey: "AIzaSyB1pL0R6K7haTKKKdtcWA_9LTvagLcOwlM",
+    authDomain: "bam1-3d3e5.firebaseapp.com",
+    projectId: "bam1-3d3e5",
+    storageBucket: "bam1-3d3e5.firebasestorage.app",
+    messagingSenderId: "649603741902",
+    appId: "1:649603741902:web:e67f20363f485c0948789f"
+  };
 
-    let currentUser=null, depId=null, depData=null, country=defaultCurrency;
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const $ = id => document.getElementById(id);
 
-    async function getUserCountry(uid){
-      const ref=doc(db,"countries",uid);
-      const snap=await getDoc(ref);
-      if(!snap.exists()) return defaultCurrency;
-      return snap.data().country || defaultCurrency;
+  // 🪙 Currency Format
+  const currencySymbols = { UGX: "UGX", NGN: "₦", TZS: "TSh", KES: "KSh", GHS: "₵", ZMW: "ZK" };
+  const defaultCurrency = "UGX";
+  const fmt = (n, c) => `${currencySymbols[c] || c} ${Number(n || 0).toLocaleString()}`;
+  const show = (m, ok = false) => { $("statusArea").innerHTML = `<div class="banner ${ok ? 'ok' : ''}">${m}</div>`; };
+
+  let currentUser = null, depId = null, depData = null, country = defaultCurrency;
+
+  // 🌍 Get user's country
+  async function getUserCountry(uid) {
+    const ref = doc(db, "countries", uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return defaultCurrency;
+    return snap.data().country || defaultCurrency;
+  }
+
+  // 💳 Get pending deposit
+  async function getPendingDeposit(uid) {
+    const q = query(
+      collection(db, "deposits"),
+      where("uid", "==", uid),
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+    const s = await getDocs(q);
+    if (!s.empty) {
+      const d = s.docs[0];
+      return { id: d.id, data: d.data() };
     }
+    return null;
+  }
 
-    async function getPendingDeposit(uid){
-      const q=query(collection(db,"deposits"),
-        where("uid","==",uid),
-        where("status","==","pending"),
-        orderBy("createdAt","desc"),
-        limit(1));
-      const s=await getDocs(q);
-      if(!s.empty){const d=s.docs[0];return{id:d.id,data:d.data()};}
-      return null;
+  // 💰 Load deposit info
+  async function loadDeposit() {
+    const picked = await getPendingDeposit(currentUser.uid);
+    if (!picked) {
+      $("instructions").textContent = "No pending deposit found.";
+      return;
     }
+    depId = picked.id;
+    depData = picked.data;
+    $("depAmount").textContent = fmt(depData.amount || 0, country);
+    $("paymentDetails").style.display = "flex";
+  }
 
-    async function loadDeposit(){
-      const picked=await getPendingDeposit(currentUser.uid);
-      if(!picked){$("instructions").textContent="No pending deposit found.";return;}
-      depId=picked.id;depData=picked.data;
-      $("depAmount").textContent=fmt(depData.amount||0,country);
-      $("paymentDetails").style.display="flex";
-    }
+  // 🇺🇬 Uganda Payment Option
+  function showUganda() {
+    $("instructions").textContent = "Send to the MTN number below, paste your confirmation message, and mark successful.";
+    $("payName").textContent = "Name: Mushimiyimaana Jacenta";
+    $("payNumber").textContent = "Send to: 0779387480 (MTN)";
+    $("ugandaSection").style.display = "block";
+    $("eversendSection").style.display = "none";
+  }
 
-    function showUganda(){
-      $("instructions").textContent="Send to the MTN number below, paste your confirmation message, and mark successful.";
-      $("payName").textContent="Name: Mushimiyimaana Jacenta";
-      $("payNumber").textContent="Send to: 0779387480 (MTN)";
-      $("ugandaSection").style.display="block";
-      $("eversendSection").style.display="none";
-    }
+  // 🌐 Eversend Option
+  function showEversend() {
+    $("instructions").textContent = "Please complete your payment using the Eversend link below.";
+    $("payName").textContent = "Eversend Payment";
+    $("payNumber").textContent = "Global Collection Link";
+    $("ugandaSection").style.display = "none";
+    $("eversendSection").style.display = "block";
+  }
 
-    function showEversend(){
-      $("instructions").textContent="Please complete your payment using the Eversend link below.";
-      $("payName").textContent="Eversend Payment";
-      $("payNumber").textContent="Global Collection Link";
-      $("ugandaSection").style.display="none";
-      $("eversendSection").style.display="block";
-    }
+  // 👤 When user logged in
+  onAuthStateChanged(auth, async (u) => {
+    if (!u) { location.href = "login.html"; return; }
+    currentUser = u;
+    country = await getUserCountry(u.uid);
+    await loadDeposit();
 
-    onAuthStateChanged(auth, async (u)=>{
-      if(!u){location.href="login.html";return;}
-      currentUser=u;
-      country=await getUserCountry(u.uid);
-      await loadDeposit();
+    // Country-specific payment options
+    if (country === "UGX" || country === "UG") { showUganda(); }
+    else { showEversend(); }
 
-      // Country logic
-      if(country==="UGX"||country==="UG"){showUganda();}
-      else{showEversend();}
+    // ✅ SMS confirmation for Uganda
+    if (country === "UGX" || country === "UG") {
+      const sms = $("sms"), btn = $("markSuccess");
 
-      // SMS confirmation only for Uganda
-      if(country==="UGX"||country==="UG"){
-        const sms=$("sms"),btn=$("markSuccess");
-        sms.addEventListener("input",()=>{btn.disabled=!sms.value.trim();});
-        btn.addEventListener("click",async()=>{
-          if(!depId){show("No pending deposit found.");return;}
-          await runTransaction(db,async(tx)=>{
-            const ref=doc(db,"deposits",depId);
-            const snap=await tx.get(ref);
-            if(!snap.exists())throw new Error("Deposit not found.");
-            tx.update(ref,{
-              status:"successful",
-              rawMessage:sms.value.trim(),
-              validatedAt:serverTimestamp()
+      sms.addEventListener("input", () => { btn.disabled = !sms.value.trim(); });
+
+      btn.addEventListener("click", async () => {
+        if (!depId) { show("No pending deposit found."); return; }
+
+        btn.disabled = true;
+        btn.textContent = "Processing...";
+
+        try {
+          await runTransaction(db, async (tx) => {
+            // Deposit reference
+            const ref = doc(db, "deposits", depId);
+            const snap = await tx.get(ref);
+            if (!snap.exists()) throw new Error("Deposit not found.");
+
+            // 1️⃣ Mark deposit successful
+            tx.update(ref, {
+              status: "successful",
+              rawMessage: sms.value.trim(),
+              validatedAt: serverTimestamp()
             });
+
+            // 2️⃣ Add amount to user's wallet
+            const uref = doc(db, "users", currentUser.uid);
+            const usnap = await tx.get(uref);
+            if (usnap.exists()) {
+              const udata = usnap.data();
+              const newBalance = (udata.mainWallet || 0) + (depData.amount || 0);
+              tx.update(uref, {
+                mainWallet: newBalance,
+                updatedAt: serverTimestamp()
+              });
+            }
           });
-          show("Deposit marked successful. Admin will confirm soon.",true);
-          btn.disabled=true;
-        });
-      }
-    });
-  </script>
+
+          show(`✅ Deposit marked successful and ${fmt(depData.amount, country)} added to your wallet.`, true);
+          btn.textContent = "Successful";
+        } catch (e) {
+          console.error(e);
+          show(e.message || "Failed to update wallet. Try again.");
+          btn.disabled = false;
+          btn.textContent = "Successful";
+        }
+      });
+    }
+  });
+</script>
 </body>
 </html>
