@@ -261,7 +261,7 @@
     // 🗓️ Check if today is Saturday (6) or Sunday (0)
     const day = new Date().getDay();  
     if(day === 6 || day === 0){  
-      $("adList").innerHTML = `<div class="banner">🚫 <b>Weekend Mode Active!</b><br><br>Advert-viewing tasks are not available on Saturdays and Sundays.<br><br>Please complete the <b>Mega Weekend Tasks</b> instead. These tasks earn you <b>more income</b> and are <b>monitored and paid by the manager.</b><br><br>Submit your weekend video and brochure tasks to your manager for payment.</div>`;  
+      $("adList").innerHTML = `<div class="banner">🔔 <b>Weekend Mega tasks Active!</b><br><br>Advert-viewing tasks are not available on Saturdays and Sundays.<br><br>Please complete the <b>Mega Weekend Tasks</b> instead. These tasks earn you <b>more income than advert tasks.</b> Weekend tasks are <b>monitored and paid by the manager.</b><br><br>Submit your weekend video and brochure tasks to your manager for payment.</div>`;  
       return;  
     }  
 
